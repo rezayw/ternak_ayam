@@ -1,0 +1,392 @@
+---
+const csrf = Astro.cookies.get("csrf")?.value;
+import "../styles/register.css";
+---
+
+
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Daftar - Ternak Ayam</title>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🐔 Daftar</h1>
+        <p>Buat akun Ternak Ayam Anda sekarang</p>
+      </div>
+
+      <form method="post" action="/api/auth/register" id="registerForm">
+        <input type="hidden" name="csrf" value={csrf} />
+
+        <!-- Name Fields -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="firstName">Nama Depan</label>
+            <input
+              type="text"
+              id="firstName"
+              name="firstName"
+              placeholder="John"
+              required
+            />
+            <div class="error-message" id="firstNameError"></div>
+            <div class="success-message" id="firstNameSuccess">✓</div>
+          </div>
+
+          <div class="form-group">
+            <label for="lastName">Nama Belakang</label>
+            <input
+              type="text"
+              id="lastName"
+              name="lastName"
+              placeholder="Doe"
+              required
+            />
+            <div class="error-message" id="lastNameError"></div>
+            <div class="success-message" id="lastNameSuccess">✓</div>
+          </div>
+        </div>
+
+        <!-- Email Field -->
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="contoh@email.com"
+            required
+          />
+          <div class="error-message" id="emailError"></div>
+          <div class="success-message" id="emailSuccess">✓</div>
+        </div>
+
+        <!-- Email Confirmation -->
+        <div class="form-group">
+          <label for="emailConfirm">Konfirmasi Email</label>
+          <input
+            type="email"
+            id="emailConfirm"
+            name="emailConfirm"
+            placeholder="Ulangi email Anda"
+            required
+          />
+          <div class="error-message" id="emailConfirmError"></div>
+          <div class="success-message" id="emailConfirmSuccess">✓</div>
+        </div>
+
+        <!-- Password Field -->
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder="••••••••"
+            minlength="8"
+            required
+          />
+          <div class="password-hint">Minimum 8 karakter (12+ sangat disarankan)</div>
+          <div class="error-message" id="passwordError"></div>
+
+          <!-- Password Strength Meter -->
+          <div class="password-strength" id="passwordStrength" style="display: none;">
+            <div class="strength-meter">
+              <div class="strength-bar" id="strengthBar"></div>
+            </div>
+            <div class="strength-text" id="strengthText">Kekuatan Password</div>
+          </div>
+
+          <!-- Requirements Checklist -->
+          <div class="requirements">
+            <div class="requirement-title">Persyaratan Password:</div>
+            <div class="requirement-item" id="req-length">
+              <span class="requirement-check">-</span>
+              <span>Minimal 8 karakter (sebaiknya 12+)</span>
+            </div>
+            <div class="requirement-item" id="req-uppercase">
+              <span class="requirement-check">-</span>
+              <span>Huruf besar (A-Z)</span>
+            </div>
+            <div class="requirement-item" id="req-lowercase">
+              <span class="requirement-check">-</span>
+              <span>Huruf kecil (a-z)</span>
+            </div>
+            <div class="requirement-item" id="req-number">
+              <span class="requirement-check">-</span>
+              <span>Angka (0-9)</span>
+            </div>
+            <div class="requirement-item" id="req-special">
+              <span class="requirement-check">-</span>
+              <span>Karakter spesial (!@#$%^&*)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Password Confirmation -->
+        <div class="form-group">
+          <label for="passwordConfirm">Konfirmasi Password</label>
+          <input
+            type="password"
+            id="passwordConfirm"
+            name="passwordConfirm"
+            placeholder="••••••••"
+            required
+          />
+          <div class="error-message" id="passwordConfirmError"></div>
+          <div class="success-message" id="passwordConfirmSuccess">✓</div>
+        </div>
+
+        <button type="submit" id="submitBtn">Daftar</button>
+      </form>
+
+      <div class="footer">
+        Sudah punya akun? <a href="/login">Login di sini</a>
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById("registerForm");
+      const passwordInput = document.getElementById("password") as HTMLInputElement;
+      const passwordConfirmInput = document.getElementById("passwordConfirm") as HTMLInputElement;
+      const emailInput = document.getElementById("email") as HTMLInputElement;
+      const emailConfirmInput = document.getElementById("emailConfirm") as HTMLInputElement;
+      const firstNameInput = document.getElementById("firstName") as HTMLInputElement;
+      const lastNameInput = document.getElementById("lastName") as HTMLInputElement;
+      const submitBtn = document.getElementById("submitBtn") as HTMLButtonElement;
+
+      // Common weak passwords
+      const weakPasswords = [
+        "password",
+        "123456",
+        "password123",
+        "qwerty",
+        "abc123",
+        "111111",
+        "admin",
+        "letmein",
+        "welcome",
+        "monkey",
+      ];
+
+      // Validation functions
+      function validateName(name: string) {
+        return name.length >= 2 && /^[a-zA-Z\s'-]+$/.test(name);
+      }
+
+      function validateEmail(email: string) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+      }
+
+      function checkPasswordStrength(password: string) {
+        let strength = 0;
+        let requirements = {
+          length: password.length >= 8,
+          uppercase: /[A-Z]/.test(password),
+          lowercase: /[a-z]/.test(password),
+          number: /\d/.test(password),
+          special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+        };
+
+        // Update requirements UI
+        updateRequirement("req-length", requirements.length);
+        updateRequirement("req-uppercase", requirements.uppercase);
+        updateRequirement("req-lowercase", requirements.lowercase);
+        updateRequirement("req-number", requirements.number);
+        updateRequirement("req-special", requirements.special);
+
+        // Calculate strength
+        if (requirements.length) strength += 1;
+        if (requirements.uppercase) strength += 1;
+        if (requirements.lowercase) strength += 1;
+        if (requirements.number) strength += 1;
+        if (requirements.special) strength += 1;
+
+        // Bonus for length
+        if (password.length >= 12) strength += 1;
+        if (password.length >= 16) strength += 1;
+        if (password.length >= 20) strength += 2;
+
+        // Penalty for weak passwords
+        if (weakPasswords.includes(password.toLowerCase())) strength = 1;
+
+        return { strength: Math.min(strength, 8), requirements };
+      }
+
+      function updateRequirement(elementId: string, isMet: boolean) {
+        const element = document.getElementById(elementId) as HTMLElement | null;
+        if (!element) return;
+        
+        if (isMet) {
+          element.classList.add("met");
+          const check = element.querySelector(".requirement-check");
+          if (check) check.textContent = "✓";
+        } else {
+          element.classList.remove("met");
+          const check = element.querySelector(".requirement-check");
+          if (check) check.textContent = "-";
+        }
+      }
+
+      function getPasswordStrengthLevel(strength: number) {
+        if (strength <= 2) return "weak";
+        if (strength <= 4) return "fair";
+        if (strength <= 6) return "good";
+        return "strong";
+      }
+
+      function getPasswordStrengthText(level: string) {
+        const texts: Record<string, string> = {
+          weak: "❌ Lemah - Terlalu pendek atau terlalu sederhana",
+          fair: "⚠️ Cukup - Bisa lebih kuat",
+          good: "✓ Baik - Cukup kuat",
+          strong: "✓✓ Sangat Kuat - Keamanan optimal (NIST)",
+        };
+        return texts[level];
+      }
+
+      // Real-time validation
+      firstNameInput.addEventListener("blur", function () {
+        const isValid = validateName(this.value);
+        updateFieldValidation("firstName", isValid);
+      });
+
+      lastNameInput.addEventListener("blur", function () {
+        const isValid = validateName(this.value);
+        updateFieldValidation("lastName", isValid);
+      });
+
+      emailInput.addEventListener("blur", function () {
+        const isValid = validateEmail(this.value);
+        updateFieldValidation("email", isValid);
+      });
+
+      emailConfirmInput.addEventListener("blur", function () {
+        const isMatch = this.value === emailInput.value && validateEmail(this.value);
+        updateFieldValidation("emailConfirm", isMatch, !isMatch && this.value ? "Email tidak cocok" : "");
+      });
+
+      passwordInput.addEventListener("input", function () {
+        const strengthResult = checkPasswordStrength(this.value);
+        const level = getPasswordStrengthLevel(strengthResult.strength);
+
+        const strengthDiv = document.getElementById("passwordStrength");
+        const strengthBar = document.getElementById("strengthBar");
+        const strengthText = document.getElementById("strengthText");
+        
+        if (strengthDiv) strengthDiv.style.display = this.value ? "block" : "none";
+        if (strengthBar) strengthBar.className = "strength-bar " + level;
+        if (strengthText) {
+          strengthText.className = "strength-text " + level;
+          strengthText.textContent = getPasswordStrengthText(level);
+        }
+
+        // Validate password
+        const isValid = this.value.length >= 8 && strengthResult.strength >= 3;
+        if (this.value) {
+          if (isValid) {
+            this.classList.add("success");
+            this.classList.remove("error");
+            const passwordError = document.getElementById("passwordError");
+            if (passwordError) passwordError.classList.remove("show");
+          } else {
+            this.classList.remove("success");
+          }
+        }
+      });
+
+      passwordConfirmInput.addEventListener("blur", function () {
+        const isMatch = this.value === passwordInput.value && this.value;
+        const errorMsg = !isMatch && this.value ? "Password tidak cocok" : "";
+        updateFieldValidation("passwordConfirm", isMatch as boolean, errorMsg);
+      });
+
+      function updateFieldValidation(fieldName: string, isValid: boolean, errorMsg = "") {
+        const input = document.getElementById(fieldName) as HTMLInputElement | null;
+        const errorDiv = document.getElementById(fieldName + "Error") as HTMLElement | null;
+        const successDiv = document.getElementById(fieldName + "Success") as HTMLElement | null;
+
+        if (!input) return;
+
+        if (isValid) {
+          input.classList.add("success");
+          input.classList.remove("error");
+          if (errorDiv) errorDiv.classList.remove("show");
+          if (successDiv) successDiv.classList.add("show");
+        } else if (input.value) {
+          input.classList.add("error");
+          input.classList.remove("success");
+          if (errorDiv) {
+            errorDiv.textContent = errorMsg || "Format tidak valid";
+            errorDiv.classList.add("show");
+          }
+          if (successDiv) successDiv.classList.remove("show");
+        } else {
+          input.classList.remove("success", "error");
+          if (errorDiv) errorDiv.classList.remove("show");
+          if (successDiv) successDiv.classList.remove("show");
+        }
+      }
+
+      // Form submission validation
+      form?.addEventListener("submit", function (e: any) {
+        e.preventDefault();
+
+        let isValid = true;
+        const errors: string[] = [];
+
+        // Validate all fields
+        if (!validateName(firstNameInput.value)) {
+          isValid = false;
+          errors.push("Nama depan harus setidaknya 2 karakter");
+          updateFieldValidation("firstName", false, "Nama tidak valid");
+        }
+
+        if (!validateName(lastNameInput.value)) {
+          isValid = false;
+          errors.push("Nama belakang harus setidaknya 2 karakter");
+          updateFieldValidation("lastName", false, "Nama tidak valid");
+        }
+
+        if (!validateEmail(emailInput.value)) {
+          isValid = false;
+          errors.push("Email tidak valid");
+          updateFieldValidation("email", false, "Email tidak valid");
+        }
+
+        if (emailInput.value !== emailConfirmInput.value) {
+          isValid = false;
+          errors.push("Email tidak cocok");
+          updateFieldValidation("emailConfirm", false, "Email tidak cocok");
+        }
+
+        const strengthResult = checkPasswordStrength(passwordInput.value);
+        if (passwordInput.value.length < 8 || strengthResult.strength < 3) {
+          isValid = false;
+          errors.push("Password terlalu lemah");
+          const passwordError = document.getElementById("passwordError");
+          if (passwordError) {
+            passwordError.textContent = "Password harus lebih kuat";
+            passwordError.classList.add("show");
+          }
+        }
+
+        if (passwordInput.value !== passwordConfirmInput.value) {
+          isValid = false;
+          errors.push("Password tidak cocok");
+          updateFieldValidation("passwordConfirm", false, "Password tidak cocok");
+        }
+
+        if (isValid) {
+          (form as HTMLFormElement).submit();
+        } else {
+          alert("Mohon perbaiki error berikut:\n" + errors.join("\n"));
+        }
+      });
+    </script>
+  </body>
+</html>

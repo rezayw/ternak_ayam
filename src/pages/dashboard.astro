@@ -1,0 +1,115 @@
+---
+import type { APIRoute } from "astro";
+import "../styles/dashboard.css";
+
+// Check if user is logged in
+const cookies = Astro.cookies;
+const sessionId = cookies.get("session")?.value;
+
+if (!sessionId) {
+  return Astro.redirect("/login");
+}
+---
+
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Ternak Ayam</title>
+  </head>
+  <body>
+    <!-- Navigation -->
+    <nav>
+      <div class="nav-brand">Ternak Ayam</div>
+      <div class="nav-links">
+        <a href="/upload" class="btn btn-primary">+ Upload</a>
+        <form method="POST" action="/api/auth/logout" style="display: inline;">
+          <button type="submit" class="btn btn-danger">Logout</button>
+        </form>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+      <!-- Welcome Section -->
+      <div class="welcome">
+        <h1>Selamat Datang di Dashboard! 👋</h1>
+        <p>Kelola peternakan ayam Anda dengan efisien dan produktif</p>
+      </div>
+
+      <!-- Statistics -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">🐔</div>
+          <h3>Total Ayam</h3>
+          <div class="stat-value">250</div>
+          <p style="color: #999; font-size: 0.9rem;">Aktif hari ini</p>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">🥚</div>
+          <h3>Telur Hari Ini</h3>
+          <div class="stat-value">185</div>
+          <p style="color: #999; font-size: 0.9rem;">Produksi normal</p>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">📊</div>
+          <h3>Produktivitas</h3>
+          <div class="stat-value">74%</div>
+          <p style="color: #999; font-size: 0.9rem;">Dalam target</p>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">📁</div>
+          <h3>File Tersimpan</h3>
+          <div class="stat-value">12</div>
+          <p style="color: #999; font-size: 0.9rem;">Total dokumen</p>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="actions-grid">
+        <div class="action-card">
+          <div class="action-icon">📷</div>
+          <h3>Upload Dokumen</h3>
+          <p style="color: #666; margin-bottom: 1rem;">Unggah foto atau laporan peternakan</p>
+          <a href="/upload" class="btn btn-primary">Upload Sekarang</a>
+        </div>
+
+        <div class="action-card">
+          <div class="action-icon">📋</div>
+          <h3>Lihat Laporan</h3>
+          <p style="color: #666; margin-bottom: 1rem;">Analisis data dan laporan bulanan</p>
+          <button class="btn btn-primary" onclick="alert('Fitur laporan akan segera tersedia')" >Buka Laporan</button>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="recent-activity">
+        <h2>📝 Aktivitas Terbaru</h2>
+
+        <div class="activity-item">
+          <div class="activity-message">✅ File berhasil diunggah</div>
+          <div class="activity-time">2 jam yang lalu</div>
+        </div>
+
+        <div class="activity-item">
+          <div class="activity-message">📊 Laporan produksi diperbarui</div>
+          <div class="activity-time">5 jam yang lalu</div>
+        </div>
+
+        <div class="activity-item">
+          <div class="activity-message">🔔 Pengingat pemberian pakan</div>
+          <div class="activity-time">1 hari yang lalu</div>
+        </div>
+
+        <div class="activity-item">
+          <div class="activity-message">✨ Login berhasil</div>
+          <div class="activity-time">1 hari yang lalu</div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

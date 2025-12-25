@@ -1,0 +1,101 @@
+---
+import type { APIRoute } from "astro";
+import "../styles/index.css";
+
+// Check if user is logged in
+const cookies = Astro.cookies;
+const sessionId = cookies.get("session")?.value;
+const isLoggedIn = !!sessionId;
+---
+
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ternak Ayam - Sistem Manajemen Peternakan Ayam</title>
+    <title>Ternak Ayam - Sistem Manajemen Peternakan Ayam</title>
+  </head>
+  <body>
+    <!-- Navigation -->
+    <nav>
+      <div class="nav-brand">Ternak Ayam</div>
+      <div class="nav-links">
+        {isLoggedIn ? (
+          <>
+            <a href="/dashboard">Dashboard</a>
+            <form method="POST" action="/api/auth/logout">
+              <button type="submit" class="btn btn-primary">Logout</button>
+            </form>
+          </>
+        ) : (
+          <>
+            <a href="/login">Login</a>
+            <a href="/register" class="btn btn-primary">Daftar</a>
+          </>
+        )}
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="hero">
+      <div class="hero-content">
+        <h1>🐔 Ternak Ayam</h1>
+        <p>Sistem Manajemen Peternakan Ayam Modern</p>
+        <p style="font-size: 1rem; opacity: 0.9;">
+          Kelola peternakan ayam Anda dengan lebih efisien dan produktif
+        </p>
+        <div class="hero-buttons">
+          {isLoggedIn ? (
+            <a href="/dashboard" class="btn btn-light">Buka Dashboard</a>
+          ) : (
+            <>
+              <a href="/login" class="btn btn-light">Login Sekarang</a>
+              <a href="/register" class="btn btn-secondary"
+                >Buat Akun Baru</a
+              >
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+
+    <!-- Features -->
+    {!isLoggedIn && (
+      <div class="features">
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Monitoring Stok</h3>
+          <p>
+            Pantau jumlah ayam, kesehatan, dan produktivitas secara real-time
+            dengan dashboard interaktif.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📁</div>
+          <h3>Kelola File</h3>
+          <p>
+            Upload dan kelola dokumen penting seperti laporan, foto, dan data
+            penjualan dengan mudah.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">👥</div>
+          <h3>Multi User</h3>
+          <p>
+            Kelola akses karyawan dengan sistem role berbeda (Admin dan User)
+            untuk kontrol yang lebih baik.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3>Keamanan Terjamin</h3>
+          <p>
+            Proteksi data dengan enkripsi password dan CSRF protection untuk
+            keamanan maksimal.
+          </p>
+        </div>
+      </div>
+    )}
+  </body>
+</html>

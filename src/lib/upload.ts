@@ -1,0 +1,1 @@
+export const ALLOWED = ["image/png", "image/jpeg", "image/webp"];
