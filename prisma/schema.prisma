@@ -1,5 +1,6 @@
 datasource db {
   provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -16,10 +17,23 @@ model File {
   owner    User   @relation(fields: [ownerId], references: [id])
 }
 
+model FarmData {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  totalChickens Int      @default(0)
+  eggsToday     Int      @default(0)
+  feedCost      Int      @default(0)
+  medicineCost  Int      @default(0)
+  notes         String?
+  date          DateTime @default(now())
+}
+
 model User {
-  id       String @id @default(cuid())
-  email    String @unique
+  id       String     @id @default(cuid())
+  email    String     @unique
   password String
-  role     String @default("USER")
+  role     String     @default("USER")
   files    File[]
+  farmData FarmData[]
 }

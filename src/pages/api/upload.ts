@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { randomUUID } from "node:crypto";
 import { ALLOWED } from "@/lib/upload";
+import { db } from "@/lib/db";
 
 
 export const POST: APIRoute = async ({ request, cookies }) => {
@@ -26,10 +27,25 @@ fs.mkdirSync(dir, { recursive: true });
 
 const filename = randomUUID();
 const buffer = Buffer.from(await file.arrayBuffer());
+const filePath = `${dir}/${filename}`;
 
+fs.writeFileSync(filePath, buffer);
 
-fs.writeFileSync(`${dir}/${filename}`, buffer);
+// Save file metadata to database
+await db.file.create({
+	data: {
+		id: filename,
+		filename: file.name,
+		path: filePath,
+		mime: file.type,
+		ownerId: userId
+	}
+});
 
-
-return new Response("Uploaded");
+return new Response(null, {
+	status: 302,
+	headers: {
+		Location: "/upload?success=1"
+	}
+});
 };

@@ -1,10 +1,23 @@
 ---
 import type { APIRoute } from "astro";
+import { randomUUID } from "node:crypto";
 import "../styles/index.css";
 
 // Check if user is logged in
 const cookies = Astro.cookies;
 const sessionId = cookies.get("session")?.value;
+
+let csrf = Astro.cookies.get("csrf")?.value;
+if (!csrf) {
+  csrf = randomUUID();
+  Astro.cookies.set("csrf", csrf, {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: true,
+    path: "/"
+  });
+}
+
 const isLoggedIn = !!sessionId;
 ---
 
@@ -25,6 +38,7 @@ const isLoggedIn = !!sessionId;
           <>
             <a href="/dashboard">Dashboard</a>
             <form method="POST" action="/api/auth/logout">
+              <input type="hidden" name="csrf" value={csrf} />
               <button type="submit" class="btn btn-primary">Logout</button>
             </form>
           </>
@@ -40,7 +54,7 @@ const isLoggedIn = !!sessionId;
     <!-- Hero Section -->
     <div class="hero">
       <div class="hero-content">
-        <h1>🐔 Ternak Ayam</h1>
+        <h1>Ternak Ayam</h1>
         <p>Sistem Manajemen Peternakan Ayam Modern</p>
         <p style="font-size: 1rem; opacity: 0.9;">
           Kelola peternakan ayam Anda dengan lebih efisien dan produktif
@@ -63,32 +77,32 @@ const isLoggedIn = !!sessionId;
     <!-- Features -->
     {!isLoggedIn && (
       <div class="features">
-        <div class="feature-card">
-          <div class="feature-icon">📊</div>
+        <div class="glass-card">
+          <div class="feature-icon"></div>
           <h3>Monitoring Stok</h3>
           <p>
             Pantau jumlah ayam, kesehatan, dan produktivitas secara real-time
             dengan dashboard interaktif.
           </p>
         </div>
-        <div class="feature-card">
-          <div class="feature-icon">📁</div>
+        <div class="glass-card">
+          <div class="feature-icon"></div>
           <h3>Kelola File</h3>
           <p>
             Upload dan kelola dokumen penting seperti laporan, foto, dan data
             penjualan dengan mudah.
           </p>
         </div>
-        <div class="feature-card">
-          <div class="feature-icon">👥</div>
+        <div class="glass-card">
+          <div class="feature-icon"></div>
           <h3>Multi User</h3>
           <p>
             Kelola akses karyawan dengan sistem role berbeda (Admin dan User)
             untuk kontrol yang lebih baik.
           </p>
         </div>
-        <div class="feature-card">
-          <div class="feature-icon">🔒</div>
+        <div class="glass-card">
+          <div class="feature-icon"></div>
           <h3>Keamanan Terjamin</h3>
           <p>
             Proteksi data dengan enkripsi password dan CSRF protection untuk

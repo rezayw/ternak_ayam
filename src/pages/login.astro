@@ -1,6 +1,7 @@
 ---
 import { randomUUID } from "node:crypto";
 import { createCaptcha } from "@/lib/captcha";
+import "../styles/design-system.css";
 import "../styles/login.css";
 
 let csrf = Astro.cookies.get("csrf")?.value;
@@ -34,7 +35,7 @@ Astro.cookies.set("captcha", captchaToken, {
   <body>
     <div class="container">
       <div class="header">
-        <h1>🐔 Login</h1>
+        <h1>Login</h1>
         <p>Masuk ke akun Ternak Ayam Anda</p>
       </div>
 

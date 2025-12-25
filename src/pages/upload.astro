@@ -1,6 +1,32 @@
 ---
-const csrf = Astro.cookies.get("csrf")?.value;
+import { randomUUID } from "node:crypto";
+import { db } from "@/lib/db";
+import "../styles/design-system.css";
 import "../styles/upload.css";
+
+const userId = Astro.cookies.get("session")?.value;
+if (!userId) {
+  return Astro.redirect("/login");
+}
+
+let csrf = Astro.cookies.get("csrf")?.value;
+if (!csrf) {
+  csrf = randomUUID();
+  Astro.cookies.set("csrf", csrf, {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: true,
+    path: "/"
+  });
+}
+
+const showSuccess = Astro.url.searchParams.get("success") === "1";
+
+// Fetch user's uploaded files
+const files = await db.file.findMany({
+  where: { ownerId: userId },
+  orderBy: { id: "desc" }
+});
 ---
 
 
@@ -14,11 +40,21 @@ import "../styles/upload.css";
   <body>
     <div class="container">
       <div class="header">
-        <h1>📁 Upload File</h1>
+        <h1>Upload File</h1>
         <p>Unggah dokumentasi peternakan Anda</p>
       </div>
 
-      <form method="post" action="/api/upload" enctype="multipart/form-data">
+      {showSuccess && (
+        <div class="success-banner">
+          <div class="success-icon">✅</div>
+          <div class="success-content">
+            <h3>Upload Berhasil!</h3>
+            <p>File Anda telah berhasil diupload dan tersimpan dengan aman.</p>
+          </div>
+        </div>
+      )}
+
+      <form method="post" action="/api/upload" enctype="multipart/form-data" id="uploadForm">
         <input type="hidden" name="csrf" value={csrf} />
 
         <div class="form-group">
@@ -27,20 +63,74 @@ import "../styles/upload.css";
             <input type="file" id="file" name="file" accept="image/png,image/jpeg,image/webp" required />
             <label for="file" class="file-input-label">
               <span>
-                <div class="icon">📷</div>
+                <div class="icon"></div>
                 <div class="file-input-text">Klik atau seret file ke sini</div>
                 <div class="file-input-hint">PNG, JPEG, WebP (Max 10MB)</div>
               </span>
             </label>
           </div>
+          <div id="selectedFile" style="margin-top: 1rem; color: #7b9ff5;"></div>
         </div>
 
-        <button type="submit">Upload</button>
+        <button type="submit" id="submitBtn">Upload</button>
       </form>
+
+      {files.length > 0 && (
+        <div class="uploaded-files">
+          <h2>File yang Sudah Diupload ({files.length})</h2>
+          <div class="files-list">
+            {files.map((file) => (
+              <div class="file-item">
+                <div class="file-icon">
+                  {file.mime.startsWith('image/') ? '[IMG]' : '[FILE]'}
+                </div>
+                <div class="file-info">
+                  <div class="file-name">{file.filename}</div>
+                  <div class="file-meta">
+                    <span>{file.mime}</span>
+                  </div>
+                </div>
+                <a href={`/api/download/${file.id}`} class="download-btn" download>
+                  ⬇️ Download
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div class="info-box">
+        <h3>Langkah Selanjutnya:</h3>
+        <ul>
+          <li>✅ File Anda sudah tersimpan dengan aman</li>
+          <li>Lihat statistik peternakan di <a href="/dashboard">Dashboard</a></li>
+          <li>Upload lebih banyak dokumentasi jika diperlukan</li>
+          <li>Kelola akun di halaman <a href="/dashboard">Dashboard</a></li>
+        </ul>
+      </div>
 
       <div class="back-link">
         <a href="/dashboard">← Kembali ke Dashboard</a>
       </div>
     </div>
+
+    <script>
+      const fileInput = document.getElementById('file');
+      const selectedFile = document.getElementById('selectedFile');
+      const form = document.getElementById('uploadForm');
+      const submitBtn = document.getElementById('submitBtn');
+
+      fileInput?.addEventListener('change', (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          selectedFile.textContent = `File dipilih: ${file.name}`;
+        }
+      });
+
+      form?.addEventListener('submit', (e) => {
+        submitBtn.textContent = 'Uploading...';
+        submitBtn.disabled = true;
+      });
+    </script>
   </body>
 </html>

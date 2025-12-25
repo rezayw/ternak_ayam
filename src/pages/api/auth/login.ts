@@ -43,5 +43,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
 	cookies.set("session", user.id, cookieOptions);
 
-	return new Response("OK");
+	return new Response(null, {
+		status: 302,
+		headers: {
+			Location: "/dashboard"
+		}
+	});
 };
