@@ -13,14 +13,20 @@ import "../styles/register.css";
     <title>Daftar - Ternak Ayam</title>
   </head>
   <body>
-    <div class="container">
-      <div class="header">
-        <h1>Daftar</h1>
-        <p>Buat akun Ternak Ayam Anda sekarang</p>
+    <div class="auth-shell">
+      <div class="auth-visual">
+        <img src="/images/auth-illustration.png" alt="Ilustrasi pembuatan akun aman" loading="lazy" />
+        <div class="auth-caption">Registrasi aman untuk tim kandang</div>
       </div>
 
-      <form method="post" action="/api/auth/register" id="registerForm">
-        <input type="hidden" name="csrf" value={csrf} />
+      <div class="container auth-card">
+        <div class="header">
+          <h1>Daftar</h1>
+          <p>Buat akun Ternak Ayam Anda sekarang</p>
+        </div>
+
+        <form method="post" action="/api/auth/register" id="registerForm">
+          <input type="hidden" name="csrf" value={csrf} />
 
         <!-- Name Fields -->
         <div class="form-row">
@@ -141,11 +147,12 @@ import "../styles/register.css";
           <div class="success-message" id="passwordConfirmSuccess">✓</div>
         </div>
 
-        <button type="submit" id="submitBtn">Daftar</button>
-      </form>
+          <button type="submit" id="submitBtn">Daftar</button>
+        </form>
 
-      <div class="footer">
-        Sudah punya akun? <a href="/login">Login di sini</a>
+        <div class="footer">
+          Sudah punya akun? <a href="/login">Login di sini</a>
+        </div>
       </div>
     </div>
 

@@ -64,7 +64,10 @@ const productivity = productivityBase;
   <body>
     <!-- Navigation -->
     <nav>
-      <div class="nav-brand">Ternak Ayam</div>
+      <div class="nav-brand">
+        <img src="/images/logo.png" alt="Ternak Ayam logo" />
+        <span>Ternak Ayam</span>
+      </div>
       <div class="nav-links">
         <a href="/upload" class="btn btn-primary">+ Upload</a>
         <form method="POST" action="/api/auth/logout" style="display: inline;">
@@ -77,14 +80,24 @@ const productivity = productivityBase;
     <!-- Main Content -->
     <div class="container">
       <!-- Welcome Section -->
-      <div class="welcome">
-        <h1>Selamat Datang di Dashboard!</h1>
-        <p>Kelola peternakan ayam Anda dengan efisien dan produktif</p>
-        {latestFarmData && (
-          <p style="color: #2ed573; margin-top: 0.5rem; font-weight: 600;">
-            Data terakhir diupdate: {new Date(latestFarmData.date).toLocaleDateString('id-ID')}
-          </p>
-        )}
+      <div class="welcome-grid">
+        <div class="welcome">
+          <h1>Selamat Datang di Dashboard!</h1>
+          <p>Kelola peternakan ayam Anda dengan efisien dan produktif</p>
+          {latestFarmData && (
+            <p class="welcome-meta">
+              Data terakhir diupdate: {new Date(latestFarmData.date).toLocaleDateString('id-ID')}
+            </p>
+          )}
+          <div class="welcome-actions">
+            <a href="/input-data" class="btn btn-primary">Input Data</a>
+            <a href="/laporan" class="btn btn-secondary">Lihat Laporan</a>
+          </div>
+        </div>
+        <div class="welcome-visual">
+          <img src="/images/hero-dashboard-ternak-ayam.png" alt="Ilustrasi dashboard peternakan ayam" loading="lazy" />
+          <div class="welcome-badge">Monitoring, keamanan data, multi-user</div>
+        </div>
       </div>
 
       <!-- Statistics -->
@@ -119,22 +132,23 @@ const productivity = productivityBase;
       <!-- Quick Actions -->
       <div class="actions-grid">
         <div class="glass-card">
-
           <h3>Input Data Harian</h3>
           <p style="color: #666; margin-bottom: 1rem;">Update data peternakan hari ini</p>
+          <img src="/images/realistic-monitoring-dashboard-ayam.jpg" alt="Ilustrasi input data harian" class="action-thumb" loading="lazy" />
           <a href="/input-data" class="btn btn-primary">Input Sekarang</a>
         </div>
 
         <div class="glass-card">
-
           <h3>Upload Dokumen</h3>
           <p style="color: #666; margin-bottom: 1rem;">Unggah foto atau laporan peternakan</p>
+          <img src="/images/realistic-kelola-file-peternakan.jpg" alt="Ilustrasi unggah dokumen" class="action-thumb" loading="lazy" />
           <a href="/upload" class="btn btn-primary">Upload Sekarang</a>
         </div>
 
         <div class="glass-card">
           <h3>Lihat Laporan</h3>
           <p style="color: #666; margin-bottom: 1rem;">Analisis data dan laporan bulanan</p>
+          <img src="/images/realistic-keamanan-data-peternakan.jpg" alt="Ilustrasi laporan aman" class="action-thumb" loading="lazy" />
           <a href="/laporan" class="btn btn-primary">Buka Laporan</a>
         </div>
       </div>

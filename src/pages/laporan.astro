@@ -115,7 +115,10 @@ recentActivities.push({
   <body>
     <!-- Navigation -->
     <nav>
-      <div class="nav-brand">Ternak Ayam</div>
+      <div class="nav-brand">
+        <img src="/images/logo.png" alt="Ternak Ayam logo" />
+        <span>Ternak Ayam</span>
+      </div>
       <div class="nav-links">
         <a href="/dashboard">Dashboard</a>
         <a href="/upload">Upload</a>
@@ -132,6 +135,17 @@ recentActivities.push({
         <h1>Laporan Peternakan</h1>
         <p>Analisis data dan statistik lengkap peternakan Anda</p>
       </div>
+
+      {!latestFarmData && (
+        <div class="empty-state">
+          <img src="/images/empty-state-data-ayam.png" alt="Ilustrasi data peternakan belum ada" loading="lazy" />
+          <div class="empty-copy">
+            <h3>Data belum lengkap</h3>
+            <p>Isi data harian terlebih dahulu agar grafik dan laporan lebih akurat.</p>
+            <a class="btn btn-primary" href="/input-data">Input sekarang</a>
+          </div>
+        </div>
+      )}
 
       <!-- Summary Cards -->
       <div class="summary-grid">

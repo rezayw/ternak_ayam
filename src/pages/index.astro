@@ -32,7 +32,10 @@ const isLoggedIn = !!sessionId;
   <body>
     <!-- Navigation -->
     <nav>
-      <div class="nav-brand">Ternak Ayam</div>
+      <div class="nav-brand">
+        <img src="/images/logo.png" alt="Ternak Ayam logo" />
+        <span>Ternak Ayam</span>
+      </div>
       <div class="nav-links">
         {isLoggedIn ? (
           <>
@@ -72,13 +75,17 @@ const isLoggedIn = !!sessionId;
           )}
         </div>
       </div>
+      <div class="hero-visual">
+        <img src="/images/hero-realistic-peternakan-ayam.jpg" alt="Ilustrasi peternakan ayam modern" loading="lazy" />
+        <div class="hero-badge">Real-time insight, keamanan data, multi-user</div>
+      </div>
     </div>
 
     <!-- Features -->
     {!isLoggedIn && (
       <div class="features">
         <div class="glass-card">
-          <div class="feature-icon"></div>
+          <img src="/images/monitoring.png" alt="Monitoring stok" class="feature-illustration" />
           <h3>Monitoring Stok</h3>
           <p>
             Pantau jumlah ayam, kesehatan, dan produktivitas secara real-time
@@ -86,7 +93,7 @@ const isLoggedIn = !!sessionId;
           </p>
         </div>
         <div class="glass-card">
-          <div class="feature-icon"></div>
+          <img src="/images/kelola_file.png" alt="Kelola file" class="feature-illustration" />
           <h3>Kelola File</h3>
           <p>
             Upload dan kelola dokumen penting seperti laporan, foto, dan data
@@ -94,7 +101,7 @@ const isLoggedIn = !!sessionId;
           </p>
         </div>
         <div class="glass-card">
-          <div class="feature-icon"></div>
+          <img src="/images/multiuser.png" alt="Multi user" class="feature-illustration" />
           <h3>Multi User</h3>
           <p>
             Kelola akses karyawan dengan sistem role berbeda (Admin dan User)
@@ -102,7 +109,7 @@ const isLoggedIn = !!sessionId;
           </p>
         </div>
         <div class="glass-card">
-          <div class="feature-icon"></div>
+          <img src="/images/keamananterjamin.png" alt="Keamanan terjamin" class="feature-illustration" />
           <h3>Keamanan Terjamin</h3>
           <p>
             Proteksi data dengan enkripsi password dan CSRF protection untuk

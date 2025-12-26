@@ -23,8 +23,8 @@ model FarmData {
   user          User     @relation(fields: [userId], references: [id])
   totalChickens Int      @default(0)
   eggsToday     Int      @default(0)
-  feedCost      Int      @default(0)
-  medicineCost  Int      @default(0)
+  feedCost      BigInt   @default(0)
+  medicineCost  BigInt   @default(0)
   notes         String?
   date          DateTime @default(now())
 }
