@@ -98,13 +98,13 @@ Astro.cookies.set("captcha", captchaToken, {
                 statusDiv.style.background = '#fff4e5';
                 statusDiv.style.border = '1px solid #ffb84d';
                 statusDiv.style.color = '#8b5a00';
-                statusDiv.innerHTML = '<strong>⏳ Akun menunggu approval</strong><br>Admin sedang mereview pendaftaran Anda. Silakan coba lagi nanti.';
+                statusDiv.innerHTML = '<svg style="width:20px;height:20px;vertical-align:middle;stroke:#8b5a00;stroke-width:2;fill:none;margin-right:8px;"><circle cx="10" cy="10" r="8"/><polyline points="10 5 10 10 13 12"/></svg><strong>Akun menunggu approval</strong><br>Admin sedang mereview pendaftaran Anda. Silakan coba lagi nanti.';
               } else if (text === 'ACCOUNT_REJECTED') {
                 statusDiv.style.display = 'block';
                 statusDiv.style.background = '#ffeaea';
                 statusDiv.style.border = '1px solid #ffc0c0';
                 statusDiv.style.color = '#b40000';
-                statusDiv.innerHTML = '<strong>❌ Akun ditolak</strong><br>Pendaftaran Anda tidak disetujui. Hubungi admin untuk informasi lebih lanjut.';
+                statusDiv.innerHTML = '<svg style="width:20px;height:20px;vertical-align:middle;stroke:#b40000;stroke-width:2;fill:none;margin-right:8px;"><circle cx="10" cy="10" r="8"/><line x1="13" y1="7" x2="7" y2="13"/><line x1="7" y1="7" x2="13" y2="13"/></svg><strong>Akun ditolak</strong><br>Pendaftaran Anda tidak disetujui. Hubungi admin untuk informasi lebih lanjut.';
               } else {
                 statusDiv.style.display = 'block';
                 statusDiv.style.background = '#ffeaea';

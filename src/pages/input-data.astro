@@ -42,6 +42,32 @@ const latestData = await db.farmData.findFirst({
     <title>Input Data - Ternak Ayam</title>
   </head>
   <body>
+    <!-- SVG Icons -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+      <symbol id="icon-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+        <polyline points="22 4 12 14.01 9 11.01"/>
+      </symbol>
+      <symbol id="icon-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="16" x2="12" y2="12"/>
+        <line x1="12" y1="8" x2="12.01" y2="8"/>
+      </symbol>
+      <symbol id="icon-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </symbol>
+      <symbol id="icon-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <circle cx="12" cy="12" r="6"/>
+        <circle cx="12" cy="12" r="2"/>
+      </symbol>
+      <symbol id="icon-clipboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+      </symbol>
+    </svg>
+
     <!-- Navigation -->
     <nav class="nav-shell">
       <div class="nav-brand">
@@ -193,11 +219,31 @@ const latestData = await db.farmData.findFirst({
 
       <div class="info-box">
         <h3>Tips Pengisian Data:</h3>
-        <ul>
-          <li>✅ Update data setiap hari untuk laporan yang akurat</li>
-          <li>Data yang tersimpan akan otomatis muncul di Dashboard dan Laporan</li>
-          <li>Masukkan angka sebenar mungkin untuk analisis yang tepat</li>
-          <li>Catatan membantu Anda mengingat kondisi khusus</li>
+        <ul style="list-style: none; padding-left: 0;">
+          <li style="display: flex; align-items: start; gap: 0.5rem; margin-bottom: 0.75rem;">
+            <svg class="icon" style="color: #309875; flex-shrink: 0; margin-top: 2px;">
+              <use href="#icon-check-circle"></use>
+            </svg>
+            <span>Update data setiap hari untuk laporan yang akurat</span>
+          </li>
+          <li style="display: flex; align-items: start; gap: 0.5rem; margin-bottom: 0.75rem;">
+            <svg class="icon" style="color: #3cffd0; flex-shrink: 0; margin-top: 2px;">
+              <use href="#icon-info"></use>
+            </svg>
+            <span>Data yang tersimpan akan otomatis muncul di Dashboard dan Laporan</span>
+          </li>
+          <li style="display: flex; align-items: start; gap: 0.5rem; margin-bottom: 0.75rem;">
+            <svg class="icon" style="color: #8bb4ff; flex-shrink: 0; margin-top: 2px;">
+              <use href="#icon-target"></use>
+            </svg>
+            <span>Masukkan angka sebenar mungkin untuk analisis yang tepat</span>
+          </li>
+          <li style="display: flex; align-items: start; gap: 0.5rem;">
+            <svg class="icon" style="color: #ffd700; flex-shrink: 0; margin-top: 2px;">
+              <use href="#icon-clipboard"></use>
+            </svg>
+            <span>Catatan membantu Anda mengingat kondisi khusus</span>
+          </li>
         </ul>
       </div>
     </div>

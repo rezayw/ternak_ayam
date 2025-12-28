@@ -140,8 +140,8 @@ body {
 
 .activity-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: var(--spacing-md);
   padding: var(--spacing-md);
   border-bottom: 1px solid var(--border-color);
   transition: background 0.2s ease, transform 0.2s ease;
@@ -160,6 +160,7 @@ body {
 .activity-message {
   color: var(--text-primary);
   font-weight: 600;
+  flex: 1;
 }
 
 .activity-time {

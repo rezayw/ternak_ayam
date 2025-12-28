@@ -65,6 +65,58 @@ const productivity = (latestFarmData && latestFarmData.totalChickens > 0) ?
     <title>Dashboard - Ternak Ayam</title>
   </head>
   <body>
+    <!-- SVG Icons -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+      <symbol id="icon-chicken" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 1v6m0 6v6m11-11h-6m-6 0H1"/>
+      </symbol>
+      <symbol id="icon-egg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22c3.3 0 6-3.1 6-7.5C18 9.1 12 2 12 2S6 9.1 6 14.5C6 18.9 8.7 22 12 22z"/>
+      </symbol>
+      <symbol id="icon-chart-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+        <polyline points="17 6 23 6 23 12"/>
+      </symbol>
+      <symbol id="icon-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+        <polyline points="13 2 13 9 20 9"/>
+      </symbol>
+      <symbol id="icon-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      </symbol>
+      <symbol id="icon-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </symbol>
+      <symbol id="icon-report" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="20" x2="12" y2="10"/>
+        <line x1="18" y1="20" x2="18" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="16"/>
+      </symbol>
+      <symbol id="icon-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+        <polyline points="22 4 12 14.01 9 11.01"/>
+      </symbol>
+      <symbol id="icon-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </symbol>
+      <symbol id="icon-login" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+        <polyline points="10 17 15 12 10 7"/>
+        <line x1="15" y1="12" x2="3" y2="12"/>
+      </symbol>
+      <symbol id="icon-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="23 4 23 10 17 10"/>
+        <polyline points="1 20 1 14 7 14"/>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+      </symbol>
+    </svg>
+
     <!-- Navigation -->
     <nav class="nav-shell">
       <div class="nav-brand">
@@ -113,19 +165,30 @@ const productivity = (latestFarmData && latestFarmData.totalChickens > 0) ?
       <!-- Statistics -->
       <div class="stats-grid">
         <div class="glass-card">
-          <h3>Total Ayam</h3>
+          <div class="with-icon">
+            <img src="/images/icon-chicken.svg" alt="Ikon ayam" style="width: 2rem; height: 2rem;" />
+            <h3>Total Ayam</h3>
+          </div>
           <div class="stat-value">{totalChickens}</div>
           <p style="color: #999; font-size: 0.9rem;">{allUsers} peternak aktif</p>
         </div>
 
         <div class="glass-card">
-          <h3>Telur Hari Ini</h3>
+          <div class="with-icon">
+            <img src="/images/icon-egg.svg" alt="Ikon telur" style="width: 2rem; height: 2.5rem;" />
+            <h3>Telur Hari Ini</h3>
+          </div>
           <div class="stat-value">{todayEggs}</div>
           <p style="color: #999; font-size: 0.9rem;">Produksi real-time</p>
         </div>
 
         <div class="glass-card">
-          <h3>Produktivitas</h3>
+          <div class="with-icon">
+            <svg class="icon icon-lg" style="color: #309875;">
+              <use href="#icon-chart-up"></use>
+            </svg>
+            <h3>Produktivitas</h3>
+          </div>
           <div class="stat-value">{productivity}%</div>
           <p style="color: #999; font-size: 0.9rem;">
             {productivity >= 80 ? 'Sangat Baik!' : 'Dalam target'}
@@ -133,7 +196,12 @@ const productivity = (latestFarmData && latestFarmData.totalChickens > 0) ?
         </div>
 
         <div class="glass-card">
-          <h3>File Anda</h3>
+          <div class="with-icon">
+            <svg class="icon icon-lg" style="color: #8bb4ff;">
+              <use href="#icon-file"></use>
+            </svg>
+            <h3>File Anda</h3>
+          </div>
           <div class="stat-value">{totalFiles}</div>
           <p style="color: #999; font-size: 0.9rem;">{allFiles} total sistem</p>
         </div>
@@ -142,21 +210,36 @@ const productivity = (latestFarmData && latestFarmData.totalChickens > 0) ?
       <!-- Quick Actions -->
       <div class="actions-grid">
         <div class="glass-card">
-          <h3>Input Data Harian</h3>
+          <div class="with-icon">
+            <svg class="icon icon-lg" style="color: #3cffd0;">
+              <use href="#icon-edit"></use>
+            </svg>
+            <h3>Input Data Harian</h3>
+          </div>
           <p style="color: #666; margin-bottom: 1rem;">Update data peternakan hari ini</p>
           <img src="/images/realistic-monitoring-dashboard-ayam.jpg" alt="Ilustrasi input data harian" class="action-thumb" loading="lazy" />
           {canInput ? <a href="/input-data" class="btn btn-primary">Input Sekarang</a> : <span class="btn btn-secondary" style="opacity:0.6; cursor:not-allowed;">View-only</span>}
         </div>
 
         <div class="glass-card">
-          <h3>Upload Dokumen</h3>
+          <div class="with-icon">
+            <svg class="icon icon-lg" style="color: #8bb4ff;">
+              <use href="#icon-upload"></use>
+            </svg>
+            <h3>Upload Dokumen</h3>
+          </div>
           <p style="color: #666; margin-bottom: 1rem;">Unggah foto atau laporan peternakan</p>
           <img src="/images/realistic-kelola-file-peternakan.jpg" alt="Ilustrasi unggah dokumen" class="action-thumb" loading="lazy" />
           {canUpload ? <a href="/upload" class="btn btn-primary">Upload Sekarang</a> : <span class="btn btn-secondary" style="opacity:0.6; cursor:not-allowed;">View-only</span>}
         </div>
 
         <div class="glass-card">
-          <h3>Lihat Laporan</h3>
+          <div class="with-icon">
+            <svg class="icon icon-lg" style="color: #ffd700;">
+              <use href="#icon-report"></use>
+            </svg>
+            <h3>Lihat Laporan</h3>
+          </div>
           <p style="color: #666; margin-bottom: 1rem;">Analisis data dan laporan bulanan</p>
           <img src="/images/realistic-keamanan-data-peternakan.jpg" alt="Ilustrasi laporan aman" class="action-thumb" loading="lazy" />
           <a href="/laporan" class="btn btn-primary">Buka Laporan</a>
@@ -168,21 +251,33 @@ const productivity = (latestFarmData && latestFarmData.totalChickens > 0) ?
         <h2>Aktivitas Terbaru</h2>
 
         <div class="activity-item">
+          <svg class="icon" style="color: #3cffd0;">
+            <use href="#icon-check-circle"></use>
+          </svg>
           <div class="activity-message">File berhasil diunggah</div>
           <div class="activity-time">2 jam yang lalu</div>
         </div>
 
         <div class="activity-item">
+          <svg class="icon" style="color: #309875;">
+            <use href="#icon-refresh"></use>
+          </svg>
           <div class="activity-message">Laporan produksi diperbarui</div>
           <div class="activity-time">5 jam yang lalu</div>
         </div>
 
         <div class="activity-item">
+          <svg class="icon" style="color: #ffd700;">
+            <use href="#icon-clock"></use>
+          </svg>
           <div class="activity-message">Pengingat pemberian pakan</div>
           <div class="activity-time">1 hari yang lalu</div>
         </div>
 
         <div class="activity-item">
+          <svg class="icon" style="color: #8bb4ff;">
+            <use href="#icon-login"></use>
+          </svg>
           <div class="activity-message">Login berhasil</div>
           <div class="activity-time">1 hari yang lalu</div>
         </div>
