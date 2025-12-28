@@ -45,46 +45,74 @@ const latestFarmData = await db.farmData.findFirst({
   orderBy: { date: "desc" }
 });
 
-// Calculate REAL statistics - PRIORITAS dari input user!
-const totalChickens = latestFarmData?.totalChickens || (200 + (allUsers * 10));
-const currentEggs = latestFarmData?.eggsToday || (150 + (totalFiles * 5));
+// GET ALL FARM DATA for historical analysis
+const allFarmData = await db.farmData.findMany({
+  where: { userId },
+  orderBy: { date: "asc" }
+});
 
-const healthBase = latestFarmData ? 
-  Math.min(90 + Math.floor((currentEggs / totalChickens) * 10), 100) :
-  (85 + Math.min(imageFiles * 2, 15));
+// GET ALL USERS' DATA for aggregate statistics
+const allUsersFarmData = await db.farmData.findMany({
+  orderBy: { date: "desc" }
+});
 
-const healthScore = healthBase;
+// ============= REAL STATISTICS FROM DATABASE =============
+// Total ayam: aggregate dari SEMUA user atau latest user data
+const totalChickensFromAll = allUsersFarmData.reduce((sum, data) => sum + data.totalChickens, 0);
+const totalChickens = latestFarmData?.totalChickens || 0;
+const currentEggs = latestFarmData?.eggsToday || 0;
 
-// Use REAL costs from user input or calculate
-const totalFeedCost = latestFarmData?.feedCost || Math.floor(totalChickens * 10000);
-const medicineCost = latestFarmData?.medicineCost || Math.floor(totalChickens * 1800);
-const maintenanceCost = Math.floor(totalChickens * 1400);
+// Hitung kesehatan REAL dari data (bukan formula dummy)
+const healthScore = latestFarmData ? 
+  (latestFarmData.healthyChickens && latestFarmData.totalChickens > 0
+    ? Math.floor((latestFarmData.healthyChickens / latestFarmData.totalChickens) * 100)
+    : 0)
+  : 0;
+
+// Biaya REAL dari database (bukan kalkulasi dummy)
+const totalFeedCost = latestFarmData?.feedCost ? Number(latestFarmData.feedCost) : 0;
+const medicineCost = latestFarmData?.medicineCost ? Number(latestFarmData.medicineCost) : 0;
+const maintenanceCost = latestFarmData?.maintenanceCost ? Number(latestFarmData.maintenanceCost) : 0;
 const totalCost = totalFeedCost + medicineCost + maintenanceCost;
 
-// Generate monthly data based on REAL input or database growth
+// ============= GENERATE MONTHLY DATA FROM DATABASE =============
 const now = new Date();
 const monthlyData = [];
+
+// Group farm data by month
+const monthlyGroups = new Map<string, any[]>();
+allFarmData.forEach(data => {
+  const dataDate = new Date(data.date);
+  const monthKey = `${dataDate.getFullYear()}-${String(dataDate.getMonth() + 1).padStart(2, '0')}`;
+  if (!monthlyGroups.has(monthKey)) {
+    monthlyGroups.set(monthKey, []);
+  }
+  monthlyGroups.get(monthKey)!.push(data);
+});
+
 for (let i = 5; i >= 0; i--) {
   const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
   const monthName = date.toLocaleDateString('id-ID', { month: 'short' });
+  const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   
-  // Simulate growth - bulan terakhir pakai data real
-  const growthFactor = (6 - i) / 6;
-  const baseProduction = 150;
+  const monthData = monthlyGroups.get(monthKey) || [];
   
-  let production;
-  if (i === 0 && latestFarmData) {
-    // Bulan ini pakai data REAL dari input
-    production = currentEggs;
-  } else {
-    production = Math.floor(baseProduction + (totalFiles * 5 * growthFactor));
-  }
+  // Aggregate REAL data dari bulan tersebut
+  const totalProduction = monthData.reduce((sum, d) => sum + d.eggsToday, 0);
+  const avgHealth = monthData.length > 0
+    ? Math.floor(monthData.reduce((sum, d) => {
+        const h = d.healthyChickens && d.totalChickens > 0 
+          ? (d.healthyChickens / d.totalChickens) * 100 
+          : 0;
+        return sum + h;
+      }, 0) / monthData.length)
+    : 0;
   
   monthlyData.push({
     month: monthName,
-    production: production,
-    health: Math.min(85 + Math.floor(growthFactor * (healthScore - 85)), 100),
-    feed: Math.floor(100 + (growthFactor * 40))
+    production: totalProduction,
+    health: avgHealth,
+    dataCount: monthData.length
   });
 }
 
@@ -92,17 +120,246 @@ const currentMonth = monthlyData[monthlyData.length - 1];
 
 // Get recent activities from files
 const recentActivities = files.slice(0, 3).map(file => ({
-  icon: '',
+  icon: '<img src="/images/icon-upload.png" alt="upload" style="width:20px;height:20px;" />',
   text: `Upload: ${file.filename}`,
   date: 'Baru saja'
 }));
 
 // Add login activity
 recentActivities.push({
-  icon: '✅',
+  icon: '<img src="/images/icon-success.png" alt="success" style="width:20px;height:20px;" />',
   text: 'Login ke sistem',
   date: 'Hari ini'
 });
+
+const role = user?.role ?? "USER";
+const isModerator = role === "ADMIN" || role === "SUPERVISOR";
+
+let commentThread = null;
+let comments = [] as any[];
+if (latestFarmData) {
+  commentThread = await db.commentThread.findUnique({
+    where: {
+      resourceType_resourceId: {
+        resourceType: "FARM_DATA",
+        resourceId: latestFarmData.id
+      }
+    }
+  });
+
+  if (commentThread) {
+    comments = await db.comment.findMany({
+      where: {
+        threadId: commentThread.id,
+        ...(isModerator
+          ? {}
+          : {
+              OR: [
+                { status: "APPROVED" },
+                { authorId: userId }
+              ]
+            })
+      },
+      orderBy: { createdAt: "asc" },
+      include: {
+        author: { select: { id: true, email: true, role: true } }
+      }
+    });
+  }
+}
+
+// Jika punya data farm tapi belum ada thread, buat thread baru agar bisa diskusi
+if (!commentThread && latestFarmData) {
+  commentThread = await db.commentThread.create({
+    data: {
+      resourceType: "FARM_DATA",
+      resourceId: latestFarmData.id,
+      createdById: userId
+    }
+  });
+  comments = [];
+}
+
+// Fallback: jika farm terbaru belum punya thread, ambil thread FARM_DATA terbaru milik user
+if (!commentThread) {
+  const farmDataIds = await db.farmData.findMany({
+    where: { userId },
+    select: { id: true },
+    orderBy: { date: "desc" }
+  });
+
+  if (farmDataIds.length > 0) {
+    commentThread = await db.commentThread.findFirst({
+      where: {
+        resourceType: "FARM_DATA",
+        resourceId: { in: farmDataIds.map((f) => f.id) }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
+    if (commentThread) {
+      comments = await db.comment.findMany({
+        where: {
+          threadId: commentThread.id,
+          ...(isModerator
+            ? {}
+            : {
+                OR: [
+                  { status: "APPROVED" },
+                  { authorId: userId }
+                ]
+              })
+        },
+        orderBy: { createdAt: "asc" },
+        include: {
+          author: { select: { id: true, email: true, role: true } }
+        }
+      });
+    }
+  }
+}
+
+// Jika thread ada tapi belum ada komentar, pilih thread user yang sudah punya komentar (paling baru) agar tidak kosong
+if (commentThread && comments.length === 0) {
+  const farmDataIds = await db.farmData.findMany({
+    where: { userId },
+    select: { id: true }
+  });
+
+  const threadWithComments = await db.commentThread.findFirst({
+    where: {
+      resourceType: "FARM_DATA",
+      resourceId: { in: farmDataIds.map((f) => f.id) },
+      comments: { some: {} }
+    },
+    orderBy: { createdAt: "desc" }
+  });
+
+  if (threadWithComments) {
+    commentThread = threadWithComments;
+    comments = await db.comment.findMany({
+      where: {
+        threadId: commentThread.id,
+        ...(isModerator
+          ? {}
+          : {
+              OR: [
+                { status: "APPROVED" },
+                { authorId: userId }
+              ]
+            })
+      },
+      orderBy: { createdAt: "asc" },
+      include: {
+        author: { select: { id: true, email: true, role: true } }
+      }
+    });
+  }
+}
+
+// Last-resort fallback: hanya untuk moderator, ambil thread FARM_DATA terbaru (global) supaya minimal ada yang tampil
+if (!commentThread && isModerator) {
+  commentThread = await db.commentThread.findFirst({
+    where: { resourceType: "FARM_DATA" },
+    orderBy: { createdAt: "desc" }
+  });
+
+  if (commentThread) {
+    comments = await db.comment.findMany({
+      where: {
+        threadId: commentThread.id,
+        ...(isModerator
+          ? {}
+          : {
+              OR: [
+                { status: "APPROVED" },
+                { authorId: userId }
+              ]
+            })
+      },
+      orderBy: { createdAt: "asc" },
+      include: {
+        author: { select: { id: true, email: true, role: true } }
+      }
+    });
+  }
+}
+
+// Jika thread ada tapi masih kosong (semua path), cari thread ANY yang punya komentar
+if (commentThread && comments.length === 0) {
+  const threadWithComments = await db.commentThread.findFirst({
+    where: {
+      resourceType: "FARM_DATA",
+      comments: { some: {} }
+    },
+    orderBy: { createdAt: "desc" }
+  });
+
+  if (threadWithComments) {
+    commentThread = threadWithComments;
+    comments = await db.comment.findMany({
+      where: {
+        threadId: commentThread.id,
+        ...(isModerator
+          ? {}
+          : {
+              OR: [
+                { status: "APPROVED" },
+                { authorId: userId }
+              ]
+            })
+      },
+      orderBy: { createdAt: "asc" },
+      include: {
+        author: { select: { id: true, email: true, role: true } }
+      }
+    });
+  }
+}
+
+let activeResourceId = latestFarmData?.id ?? commentThread?.resourceId ?? null;
+
+// Untuk STAFF: validasi ownership hanya untuk write (posting), bukan read
+// Mereka bisa lihat thread farm mereka sendiri dan komentar dari supervisor/admin di farm mereka
+let canPostToThread = true;
+if (role === "STAFF" && commentThread?.resourceType === "FARM_DATA") {
+  const owner = await db.farmData.findUnique({
+    where: { id: commentThread.resourceId },
+    select: { userId: true }
+  });
+
+  // Hanya block posting jika bukan farm milik staff; tetap bisa baca
+  if (!owner || owner.userId !== userId) {
+    canPostToThread = false;
+  }
+}
+
+// Build threaded comments
+const commentMap = new Map();
+const commentTree = [] as any[];
+for (const comment of comments) {
+  const node = { ...comment, replies: [] as any[], attachmentUrl: comment.attachmentPath ? `/api/comments/attachment/${comment.id}` : null };
+  commentMap.set(comment.id, node);
+}
+
+for (const comment of commentMap.values()) {
+  if (comment.parentId && commentMap.has(comment.parentId)) {
+    commentMap.get(comment.parentId).replies.push(comment);
+  } else {
+    commentTree.push(comment);
+  }
+}
+
+// Sort: pinned comments first, then by creation date
+commentTree.sort((a, b) => {
+  if (a.isPinned && !b.isPinned) return -1;
+  if (!a.isPinned && b.isPinned) return 1;
+  return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+});
+
+const canPostComment = role !== "USER" && !!commentThread && canPostToThread;
+const threadLocked = commentThread?.isLocked ?? false;
+const pinnedCommentId = commentThread?.pinnedCommentId ?? null;
 ---
 
 <!DOCTYPE html>
@@ -267,14 +524,14 @@ recentActivities.push({
               {recentActivities.length > 0 ? (
                 recentActivities.map((activity) => (
                   <div class="log-item">
-                    <div class="log-icon">{activity.icon}</div>
+                    <div class="log-icon" set:html={activity.icon}></div>
                     <div class="log-text">{activity.text}</div>
                     <div class="log-date">{activity.date}</div>
                   </div>
                 ))
               ) : (
                 <div class="log-item">
-                  <div class="log-icon">ℹ️</div>
+                  <div class="log-icon"><img src="/images/icon-info.png" alt="info" style="width:20px;height:20px;" /></div>
                   <div class="log-text">Belum ada aktivitas</div>
                   <div class="log-date">-</div>
                 </div>
@@ -282,6 +539,212 @@ recentActivities.push({
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Discussion & Comments -->
+      <div class="report-section">
+        <h2>Diskusi & Komentar</h2>
+        {threadLocked && (
+          <div class="success-banner" style="background: #ffeaea; border: 1px solid #ffc0c0;">
+            <div class="success-content">
+              <h3>Diskusi dikunci oleh Admin</h3>
+              <p>Anda hanya bisa membaca komentar.</p>
+            </div>
+          </div>
+        )}
+
+        {commentTree.length === 0 ? (
+          <div class="glass-card">
+            <p style="margin: 0;">Belum ada komentar. Mulai diskusi dengan tim Anda.</p>
+          </div>
+        ) : (
+          <div class="glass-card" style="display: flex; flex-direction: column; gap: 1rem;">
+            {commentTree.map((comment) => (
+              <div class="comment-item" style="border: 1px solid #eee; border-radius: 10px; padding: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                  <div>
+                    <strong>{comment.author.email}</strong>
+                    <span style="margin-left: 8px; font-size: 0.85rem; color: #777;">{comment.author.role}</span>
+                    {comment.isPinned && <span style="margin-left: 8px; color: #c97a00; display: inline-flex; align-items: center; gap: 4px;"><img src="/images/icon-pin.png" alt="pinned" style="width:16px;height:16px;" /> Pinned</span>}
+                  </div>
+                  <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                    <span style={`font-size: 0.8rem; padding: 2px 8px; border-radius: 999px; ${comment.status === 'APPROVED' ? 'background:#e6f7ed;color:#0f7b45' : comment.status === 'PENDING' ? 'background:#fff4e5;color:#b45d00' : 'background:#ffeaea;color:#b40000'}`}>Status: {comment.status}</span>
+                    {comment.issueTag && (
+                      <span style="font-size: 0.8rem; padding: 2px 8px; border-radius: 999px; background:#e7e9ff; color:#3c3fa0;">Tag: {comment.issueTag}</span>
+                    )}
+                  </div>
+                </div>
+
+                <p style="margin: 0.5rem 0; white-space: pre-wrap;">{comment.content}</p>
+
+                <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap: wrap; font-size: 0.9rem; color: #666;">
+                  <span>{new Date(comment.createdAt).toLocaleString('id-ID')}</span>
+                  {comment.isEdited && <span>(edited)</span>}
+                  {comment.attachmentUrl && (
+                    <a href={comment.attachmentUrl} style="display: inline-flex; align-items: center; gap: 4px;"><img src="/images/icon-attachment.png" alt="attachment" style="width:16px;height:16px;" /> Lampiran</a>
+                  )}
+                </div>
+
+                {(role !== "USER") && (
+                  <div style="margin-top: 0.5rem; display:flex; gap:0.5rem; flex-wrap: wrap;">
+                    {((role === "ADMIN") || (role === "SUPERVISOR" && (comment.author.role === "STAFF" || comment.author.role === "SUPERVISOR")) || (comment.authorId === userId)) && (
+                      <form method="POST" action="/api/comments/delete">
+                        <input type="hidden" name="csrf" value={csrf} />
+                        <input type="hidden" name="commentId" value={comment.id} />
+                        <input type="hidden" name="redirectTo" value="/laporan" />
+                        <button type="submit" class="btn btn-danger" style="padding: 4px 10px; font-size: 0.85rem;">Hapus</button>
+                      </form>
+                    )}
+
+                    {isModerator && comment.status === "PENDING" && (
+                      <form method="POST" action="/api/comments/update" style="display:inline;">
+                        <input type="hidden" name="csrf" value={csrf} />
+                        <input type="hidden" name="commentId" value={comment.id} />
+                        <input type="hidden" name="action" value="status" />
+                        <input type="hidden" name="status" value="APPROVED" />
+                        <input type="hidden" name="redirectTo" value="/laporan" />
+                        <button type="submit" class="btn btn-primary" style="padding: 4px 10px; font-size: 0.85rem;">Approve</button>
+                      </form>
+                    )}
+
+                    {role === "ADMIN" && (
+                      <form method="POST" action="/api/comments/update" style="display:inline;">
+                        <input type="hidden" name="csrf" value={csrf} />
+                        <input type="hidden" name="commentId" value={comment.id} />
+                        <input type="hidden" name="action" value="pin" />
+                        <input type="hidden" name="redirectTo" value="/laporan" />
+                        <button type="submit" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.85rem;">{comment.id === pinnedCommentId ? 'Unpin' : 'Pin'}</button>
+                      </form>
+                    )}
+                  </div>
+                )}
+
+                {(role !== "USER") && !threadLocked && !!commentThread && comment.threadId === commentThread.id && (
+                  <div style="margin-top: 0.75rem;">
+                    <form method="POST" action="/api/comments/create" enctype="multipart/form-data" style="display:flex; flex-direction: column; gap: 0.5rem;">
+                      <input type="hidden" name="csrf" value={csrf} />
+                      <input type="hidden" name="resourceType" value="FARM_DATA" />
+                      <input type="hidden" name="resourceId" value={commentThread.resourceId} />
+                      <input type="hidden" name="parentId" value={comment.id} />
+                      <input type="hidden" name="redirectTo" value="/laporan" />
+                      <label style="width:100%;">
+                        <span style="display:block; margin-bottom: 4px; font-size: 0.9rem; color: #555;">Balas komentar ini</span>
+                        <textarea name="content" rows={2} required placeholder="Tulis balasan..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd;"></textarea>
+                      </label>
+                      <label style="font-size: 0.9rem; color: #555; display:flex; gap:0.5rem; align-items:center;">
+                        <span>Lampiran (opsional)</span>
+                        <input type="file" name="attachment" accept="image/png,image/jpeg,image/webp" />
+                      </label>
+                      <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <button type="submit" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.9rem;">Kirim Balasan</button>
+                        {role === "STAFF" && <span style="font-size:0.85rem; color:#b45d00;">Balasan menunggu approval.</span>}
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                {comment.replies.length > 0 && (
+                  <div style="border-left: 2px solid #eee; margin-top: 1rem; padding-left: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                    {comment.replies.map((reply) => (
+                      <div style="border: 1px solid #f1f1f1; border-radius: 8px; padding: 0.75rem;">
+                        <div style="display:flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+                          <div>
+                            <strong>{reply.author.email}</strong>
+                            <span style="margin-left: 8px; font-size: 0.85rem; color: #777;">{reply.author.role}</span>
+                          </div>
+                          <span style={`font-size: 0.8rem; padding: 2px 8px; border-radius: 999px; ${reply.status === 'APPROVED' ? 'background:#e6f7ed;color:#0f7b45' : reply.status === 'PENDING' ? 'background:#fff4e5;color:#b45d00' : 'background:#ffeaea;color:#b40000'}`}>Status: {reply.status}</span>
+                        </div>
+                        <p style="margin: 0.5rem 0; white-space: pre-wrap;">{reply.content}</p>
+                        <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap: wrap; font-size: 0.9rem; color: #666;">
+                          <span>{new Date(reply.createdAt).toLocaleString('id-ID')}</span>
+                          {reply.isEdited && <span>(edited)</span>}
+                          {reply.attachmentPath && <a href={`/api/comments/attachment/${reply.id}`} style="display: inline-flex; align-items: center; gap: 4px;"><img src="/images/icon-attachment.png" alt="attachment" style="width:16px;height:16px;" /> Lampiran</a>}
+                        </div>
+
+                        {(role !== "USER") && (
+                          <div style="margin-top: 0.5rem; display:flex; gap:0.5rem; flex-wrap: wrap;">
+                            {isModerator && reply.status === "PENDING" && (
+                              <form method="POST" action="/api/comments/update" style="display:inline;">
+                                <input type="hidden" name="csrf" value={csrf} />
+                                <input type="hidden" name="commentId" value={reply.id} />
+                                <input type="hidden" name="action" value="status" />
+                                <input type="hidden" name="status" value="APPROVED" />
+                                <input type="hidden" name="redirectTo" value="/laporan" />
+                                <button type="submit" class="btn btn-primary" style="padding: 4px 10px; font-size: 0.85rem;">Approve</button>
+                              </form>
+                            )}
+
+                            {isModerator && reply.status === "PENDING" && (
+                              <form method="POST" action="/api/comments/update" style="display:inline;">
+                                <input type="hidden" name="csrf" value={csrf} />
+                                <input type="hidden" name="commentId" value={reply.id} />
+                                <input type="hidden" name="action" value="status" />
+                                <input type="hidden" name="status" value="REJECTED" />
+                                <input type="hidden" name="redirectTo" value="/laporan" />
+                                <button type="submit" class="btn btn-danger" style="padding: 4px 10px; font-size: 0.85rem;">Reject</button>
+                              </form>
+                            )}
+
+                            {((role === "ADMIN") || (role === "SUPERVISOR" && (reply.author.role === "STAFF" || reply.author.role === "SUPERVISOR")) || (reply.authorId === userId)) && (
+                              <form method="POST" action="/api/comments/delete">
+                                <input type="hidden" name="csrf" value={csrf} />
+                                <input type="hidden" name="commentId" value={reply.id} />
+                                <input type="hidden" name="redirectTo" value="/laporan" />
+                                <button type="submit" class="btn btn-danger" style="padding: 4px 10px; font-size: 0.85rem;">Hapus</button>
+                              </form>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {canPostComment ? (
+          <div class="glass-card" style="margin-top: 1rem;">
+            <h3 style="margin-top: 0;">Tambah Komentar</h3>
+            <form method="POST" action="/api/comments/create" enctype="multipart/form-data" style="display:flex; flex-direction: column; gap: 0.75rem;">
+              <input type="hidden" name="csrf" value={csrf} />
+              <input type="hidden" name="resourceType" value="FARM_DATA" />
+              <input type="hidden" name="resourceId" value={activeResourceId} />
+              <input type="hidden" name="redirectTo" value="/laporan" />
+              <label>
+                <span style="display:block; margin-bottom: 4px;">Komentar</span>
+                <textarea name="content" rows={3} required placeholder="Tulis komentar, insight, atau instruksi..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd;"></textarea>
+              </label>
+              <label>
+                <span style="display:block; margin-bottom: 4px;">Tag (opsional)</span>
+                <input type="text" name="issueTag" placeholder="Misal: kebersihan, kesehatan, pakan" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd;" />
+              </label>
+              <label>
+                <span style="display:block; margin-bottom: 4px;">Lampiran Foto (png/jpg/webp)</span>
+                <input type="file" name="attachment" accept="image/png,image/jpeg,image/webp" />
+              </label>
+              <div style="font-size: 0.9rem; color: #666;">
+                {role === "STAFF" ? "Komentar Anda akan menunggu approval supervisor." : "Komentar langsung tampil (kecuali dikunci)."}
+              </div>
+              <div style="display:flex; gap:0.75rem;">
+                <button type="submit" class="btn btn-primary">Kirim</button>
+              </div>
+            </form>
+            {role === "ADMIN" && commentThread && (
+              <form method="POST" action="/api/comments/update" style="margin-top: 0.75rem;">
+                <input type="hidden" name="csrf" value={csrf} />
+                <input type="hidden" name="commentId" value={commentThread.pinnedCommentId || (commentTree[0]?.id ?? "") } />
+                <input type="hidden" name="action" value="lock" />
+                <input type="hidden" name="locked" value={threadLocked ? "false" : "true"} />
+                <input type="hidden" name="redirectTo" value="/laporan" />
+                <button type="submit" class="btn btn-secondary" style="background: #222;">{threadLocked ? "Unlock Diskusi" : "Lock Diskusi"}</button>
+              </form>
+            )}
+          </div>
+        ) : (
+          <p style="margin-top: 1rem; color: #666;">Anda hanya dapat melihat komentar.</p>
+        )}
       </div>
 
       <!-- Action Buttons -->

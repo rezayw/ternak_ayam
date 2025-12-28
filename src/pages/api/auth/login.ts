@@ -41,6 +41,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 		return new Response("Invalid credentials", { status: 401 });
 	}
 
+	// Check user status
+	if (user.status === "PENDING") {
+		return new Response("PENDING_APPROVAL", { status: 403 });
+	}
+
+	if (user.status === "REJECTED") {
+		return new Response("ACCOUNT_REJECTED", { status: 403 });
+	}
+
 	cookies.set("session", user.id, cookieOptions);
 
 	return new Response(null, {

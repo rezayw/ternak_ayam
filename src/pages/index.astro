@@ -1,6 +1,7 @@
 ---
 import type { APIRoute } from "astro";
 import { randomUUID } from "node:crypto";
+import { db } from "@/lib/db";
 import "../styles/index.css";
 
 // Check if user is logged in
@@ -19,6 +20,10 @@ if (!csrf) {
 }
 
 const isLoggedIn = !!sessionId;
+const currentUser = sessionId
+  ? await db.user.findUnique({ where: { id: sessionId }, select: { role: true, email: true } })
+  : null;
+const role = currentUser?.role || "USER";
 ---
 
 <!DOCTYPE html>
@@ -40,6 +45,7 @@ const isLoggedIn = !!sessionId;
         {isLoggedIn ? (
           <>
             <a href="/dashboard">Dashboard</a>
+            {role !== "USER" && <a href="/upload">Upload</a>}
             <form method="POST" action="/api/auth/logout">
               <input type="hidden" name="csrf" value={csrf} />
               <button type="submit" class="btn btn-primary">Logout</button>
@@ -64,13 +70,16 @@ const isLoggedIn = !!sessionId;
         </p>
         <div class="hero-buttons">
           {isLoggedIn ? (
-            <a href="/dashboard" class="btn btn-light">Buka Dashboard</a>
+            <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap: wrap;">
+              <a href="/dashboard" class="btn btn-light">Buka Dashboard</a>
+              <span class="role-pill">Role: {role}</span>
+              {role === "USER" && <span class="role-note">Akses baca saja</span>}
+              {role !== "USER" && <a href="/upload" class="btn btn-secondary">Upload</a>}
+            </div>
           ) : (
             <>
               <a href="/login" class="btn btn-light">Login Sekarang</a>
-              <a href="/register" class="btn btn-secondary"
-                >Buat Akun Baru</a
-              >
+              <a href="/register" class="btn btn-secondary">Buat Akun Baru</a>
             </>
           )}
         </div>
@@ -104,8 +113,7 @@ const isLoggedIn = !!sessionId;
           <img src="/images/multiuser.png" alt="Multi user" class="feature-illustration" />
           <h3>Multi User</h3>
           <p>
-            Kelola akses karyawan dengan sistem role berbeda (Admin dan User)
-            untuk kontrol yang lebih baik.
+            Role: Admin (full), Supervisor (approve/pin/lock), Staff (input & komentar pending), User (baca saja).
           </p>
         </div>
         <div class="glass-card">

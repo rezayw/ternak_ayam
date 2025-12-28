@@ -7,26 +7,75 @@ generator client {
   provider = "prisma-client-js"
 }
 
-
 model File {
-  id       String @id @default(cuid())
-  filename String
-  path     String
-  mime     String
-  ownerId  String
-  owner    User   @relation(fields: [ownerId], references: [id])
+  id         String    @id @default(cuid())
+  filename   String
+  path       String
+  mime       String
+  ownerId    String
+  owner      User      @relation(fields: [ownerId], references: [id])
 }
 
 model FarmData {
-  id            String   @id @default(cuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id])
-  totalChickens Int      @default(0)
-  eggsToday     Int      @default(0)
-  feedCost      BigInt   @default(0)
-  medicineCost  BigInt   @default(0)
-  notes         String?
-  date          DateTime @default(now())
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+  totalChickens    Int      @default(0)
+  healthyChickens  Int      @default(0)
+  eggsToday        Int      @default(0)
+  feedCost         BigInt   @default(0)
+  medicineCost     BigInt   @default(0)
+  maintenanceCost  BigInt   @default(0)
+  notes            String?
+  date             DateTime @default(now())
+}
+
+model CommentThread {
+  id             String          @id @default(cuid())
+  resourceType   String
+  resourceId     String
+  isLocked       Boolean         @default(false)
+  pinnedCommentId String? @unique
+  pinnedComment  Comment?        @relation("ThreadPinnedComment", fields: [pinnedCommentId], references: [id])
+  createdById    String
+  createdBy      User            @relation("UserToThread", fields: [createdById], references: [id])
+  comments       Comment[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@unique([resourceType, resourceId])
+}
+
+model Comment {
+  id          String         @id @default(cuid())
+  content     String
+  authorId    String
+  author      User           @relation(fields: [authorId], references: [id])
+  threadId    String
+  thread      CommentThread  @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  parentId    String?
+  parent      Comment?       @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     Comment[]      @relation("CommentReplies")
+  status      String         @default("PENDING")
+  issueTag    String?
+  attachmentPath String?
+  attachmentMime String?
+  isEdited    Boolean        @default(false)
+  isPinned    Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  mentions    Mention[]
+  pinnedIn    CommentThread? @relation("ThreadPinnedComment")
+}
+
+model Mention {
+  id        String   @id @default(cuid())
+  commentId String
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 model User {
@@ -34,6 +83,10 @@ model User {
   email    String     @unique
   password String
   role     String     @default("USER")
+  status   String     @default("PENDING")
   files    File[]
   farmData FarmData[]
+  threads  CommentThread[] @relation("UserToThread")
+  comments Comment[]
+  mentions Mention[]
 }

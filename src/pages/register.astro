@@ -23,6 +23,9 @@ import "../styles/register.css";
         <div class="header">
           <h1>Daftar</h1>
           <p>Buat akun Ternak Ayam Anda sekarang</p>
+          <p style="margin-top: 0.35rem; font-size: 0.95rem; color: #666;">
+            Akun baru default sebagai User (baca saja). Minta Admin untuk menaikkan role ke Staff/Supervisor/Owner bila perlu.
+          </p>
         </div>
 
         <form method="post" action="/api/auth/register" id="registerForm">
@@ -40,7 +43,7 @@ import "../styles/register.css";
               required
             />
             <div class="error-message" id="firstNameError"></div>
-            <div class="success-message" id="firstNameSuccess">✓</div>
+            <div class="success-message" id="firstNameSuccess"><img src="/images/icon-checkmark.png" alt="valid" style="width:16px;height:16px;" /></div>
           </div>
 
           <div class="form-group">
@@ -53,7 +56,7 @@ import "../styles/register.css";
               required
             />
             <div class="error-message" id="lastNameError"></div>
-            <div class="success-message" id="lastNameSuccess">✓</div>
+            <div class="success-message" id="lastNameSuccess"><img src="/images/icon-checkmark.png" alt="valid" style="width:16px;height:16px;" /></div>
           </div>
         </div>
 
@@ -68,7 +71,7 @@ import "../styles/register.css";
             required
           />
           <div class="error-message" id="emailError"></div>
-          <div class="success-message" id="emailSuccess">✓</div>
+          <div class="success-message" id="emailSuccess"><img src="/images/icon-checkmark.png" alt="valid" style="width:16px;height:16px;" /></div>
         </div>
 
         <!-- Email Confirmation -->
@@ -82,7 +85,7 @@ import "../styles/register.css";
             required
           />
           <div class="error-message" id="emailConfirmError"></div>
-          <div class="success-message" id="emailConfirmSuccess">✓</div>
+          <div class="success-message" id="emailConfirmSuccess"><img src="/images/icon-checkmark.png" alt="valid" style="width:16px;height:16px;" /></div>
         </div>
 
         <!-- Password Field -->
@@ -144,7 +147,7 @@ import "../styles/register.css";
             required
           />
           <div class="error-message" id="passwordConfirmError"></div>
-          <div class="success-message" id="passwordConfirmSuccess">✓</div>
+          <div class="success-message" id="passwordConfirmSuccess"><img src="/images/icon-checkmark.png" alt="valid" style="width:16px;height:16px;" /></div>
         </div>
 
           <button type="submit" id="submitBtn">Daftar</button>
@@ -232,7 +235,7 @@ import "../styles/register.css";
         if (isMet) {
           element.classList.add("met");
           const check = element.querySelector(".requirement-check");
-          if (check) check.textContent = "✓";
+          if (check) check.innerHTML = '<img src="/images/icon-checkmark.png" alt="check" style="width:14px;height:14px;" />';
         } else {
           element.classList.remove("met");
           const check = element.querySelector(".requirement-check");
@@ -249,10 +252,10 @@ import "../styles/register.css";
 
       function getPasswordStrengthText(level: string) {
         const texts: Record<string, string> = {
-          weak: "❌ Lemah - Terlalu pendek atau terlalu sederhana",
-          fair: "⚠️ Cukup - Bisa lebih kuat",
-          good: "✓ Baik - Cukup kuat",
-          strong: "✓✓ Sangat Kuat - Keamanan optimal (NIST)",
+          weak: '<img src="/images/icon-weak.png" alt="weak" style="width:16px;height:16px;vertical-align:middle;" /> Lemah - Terlalu pendek atau terlalu sederhana',
+          fair: '<img src="/images/icon-warning.png" alt="warning" style="width:16px;height:16px;vertical-align:middle;" /> Cukup - Bisa lebih kuat',
+          good: '<img src="/images/icon-check.png" alt="good" style="width:16px;height:16px;vertical-align:middle;" /> Baik - Cukup kuat',
+          strong: '<img src="/images/icon-approve.png" alt="strong" style="width:16px;height:16px;vertical-align:middle;" /> Sangat Kuat - Keamanan optimal (NIST)',
         };
         return texts[level];
       }

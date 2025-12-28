@@ -43,9 +43,13 @@ Astro.cookies.set("captcha", captchaToken, {
         <div class="header">
           <h1>Login</h1>
           <p>Masuk ke akun Ternak Ayam Anda</p>
+          <p style="margin-top: 0.35rem; font-size: 0.95rem; color: #666;">
+            Role ditetapkan admin. User = baca saja; Staff bisa input dan komentar (butuh approval);
+            Supervisor/Admin bisa approve & pin diskusi.
+          </p>
         </div>
 
-        <form method="post" action="/api/auth/login">
+        <form method="post" action="/api/auth/login" id="loginForm">
           <input type="hidden" name="csrf" value={csrf} />
 
           <div class="form-group">
@@ -63,6 +67,8 @@ Astro.cookies.set("captcha", captchaToken, {
             <input type="text" id="captcha" name="captcha" placeholder="Jawaban" required />
           </div>
 
+          <div id="statusMessage" style="display:none; padding: 12px; border-radius: 8px; margin-bottom: 1rem;"></div>
+
           <button type="submit">Login</button>
         </form>
 
@@ -71,5 +77,57 @@ Astro.cookies.set("captcha", captchaToken, {
         </div>
       </div>
     </div>
+
+    <script>
+      document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target as HTMLFormElement;
+        const formData = new FormData(form);
+        const statusDiv = document.getElementById('statusMessage');
+
+        try {
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            body: formData
+          });
+
+          if (response.ok) {
+            window.location.href = '/dashboard';
+          } else {
+            const text = await response.text();
+            
+            if (statusDiv) {
+              if (text === 'PENDING_APPROVAL') {
+                statusDiv.style.display = 'block';
+                statusDiv.style.background = '#fff4e5';
+                statusDiv.style.border = '1px solid #ffb84d';
+                statusDiv.style.color = '#8b5a00';
+                statusDiv.innerHTML = '<strong>⏳ Akun menunggu approval</strong><br>Admin sedang mereview pendaftaran Anda. Silakan coba lagi nanti.';
+              } else if (text === 'ACCOUNT_REJECTED') {
+                statusDiv.style.display = 'block';
+                statusDiv.style.background = '#ffeaea';
+                statusDiv.style.border = '1px solid #ffc0c0';
+                statusDiv.style.color = '#b40000';
+                statusDiv.innerHTML = '<strong>❌ Akun ditolak</strong><br>Pendaftaran Anda tidak disetujui. Hubungi admin untuk informasi lebih lanjut.';
+              } else {
+                statusDiv.style.display = 'block';
+                statusDiv.style.background = '#ffeaea';
+                statusDiv.style.border = '1px solid #ffc0c0';
+                statusDiv.style.color = '#b40000';
+                statusDiv.textContent = 'Email atau password salah, atau captcha tidak valid.';
+              }
+            }
+          }
+        } catch (err) {
+          if (statusDiv) {
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#ffeaea';
+            statusDiv.style.border = '1px solid #ffc0c0';
+            statusDiv.style.color = '#b40000';
+            statusDiv.textContent = 'Terjadi kesalahan. Coba lagi.';
+          }
+        }
+      });
+    </script>
   </body>
 </html>

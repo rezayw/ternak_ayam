@@ -9,6 +9,11 @@ if (!userId) {
   return Astro.redirect("/login");
 }
 
+const currentUser = await db.user.findUnique({ where: { id: userId } });
+if (!currentUser || currentUser.role === "USER") {
+  return Astro.redirect("/dashboard");
+}
+
 let csrf = Astro.cookies.get("csrf")?.value;
 if (!csrf) {
   csrf = randomUUID();
@@ -90,6 +95,20 @@ const latestData = await db.farmData.findFirst({
           </div>
 
           <div class="form-group">
+            <label for="healthyChickens">Ayam Sehat</label>
+            <input
+              type="number"
+              id="healthyChickens"
+              name="healthyChickens"
+              placeholder="Contoh: 240"
+              min="0"
+              value={latestData?.healthyChickens || ""}
+              required
+            />
+            <div class="hint">Jumlah ayam dalam kondisi sehat</div>
+          </div>
+
+          <div class="form-group">
             <label for="eggsToday">Produksi Telur Hari Ini</label>
             <input
               type="number"
@@ -133,6 +152,20 @@ const latestData = await db.farmData.findFirst({
             />
             <div class="hint">Biaya kesehatan dan vitamin</div>
           </div>
+
+          <div class="form-group">
+            <label for="maintenanceCost">Biaya Perawatan Kandang (Rp)</label>
+            <input
+              type="number"
+              id="maintenanceCost"
+              name="maintenanceCost"
+              placeholder="Contoh: 100000"
+              min="0"
+              value={latestData?.maintenanceCost || ""}
+              required
+            />
+            <div class="hint">Biaya perawatan dan kebersihan kandang</div>
+          </div>
         </div>
 
         <div class="form-section">
@@ -152,7 +185,7 @@ const latestData = await db.farmData.findFirst({
 
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">Simpan Data</button>
-          <a href="/dashboard" class="btn btn-outline">❌ Batal</a>
+          <a href="/dashboard" class="btn btn-outline" style="display: inline-flex; align-items: center; gap: 6px;"><img src="/images/icon-cancel.png" alt="cancel" style="width:16px;height:16px;" /> Batal</a>
         </div>
       </form>
 

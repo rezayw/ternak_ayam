@@ -32,6 +32,11 @@ const user = await db.user.findUnique({
   }
 });
 
+const role = user?.role || "USER";
+const canInput = role !== "USER";
+const canUpload = role !== "USER";
+const isAdmin = role === "ADMIN";
+
 const totalFiles = user?.files.length || 0;
 const allUsers = await db.user.count();
 const allFiles = await db.file.count();
@@ -42,16 +47,14 @@ const latestFarmData = await db.farmData.findFirst({
   orderBy: { date: "desc" }
 });
 
-// Calculate REAL statistics - prioritas dari input user
-const totalChickens = latestFarmData?.totalChickens || (200 + (allUsers * 10));
-const todayEggs = latestFarmData?.eggsToday || (150 + (totalFiles * 5));
+// Calculate REAL statistics from database
+const totalChickens = latestFarmData?.totalChickens || 0;
+const todayEggs = latestFarmData?.eggsToday || 0;
 
 // Hitung produktivitas dari data real
-const productivityBase = latestFarmData ? 
-  Math.min(Math.floor((todayEggs / totalChickens) * 100), 98) :
-  Math.min(70 + (totalFiles * 3), 98);
-
-const productivity = productivityBase;
+const productivity = (latestFarmData && latestFarmData.totalChickens > 0) ? 
+  Math.min(Math.floor((todayEggs / latestFarmData.totalChickens) * 100), 100) :
+  0;
 ---
 
 <!DOCTYPE html>
@@ -69,7 +72,8 @@ const productivity = productivityBase;
         <span>Ternak Ayam</span>
       </div>
       <div class="nav-links">
-        <a href="/upload" class="btn btn-primary">+ Upload</a>
+        {isAdmin && <a href="/admin/users">Kelola Users</a>}
+        {canUpload && <a href="/upload" class="btn btn-primary">+ Upload</a>}
         <form method="POST" action="/api/auth/logout" style="display: inline;">
           <input type="hidden" name="csrf" value={csrf} />
           <button type="submit" class="btn btn-danger">Logout</button>
@@ -90,7 +94,11 @@ const productivity = productivityBase;
             </p>
           )}
           <div class="welcome-actions">
-            <a href="/input-data" class="btn btn-primary">Input Data</a>
+            {canInput ? (
+              <a href="/input-data" class="btn btn-primary">Input Data</a>
+            ) : (
+              <span class="btn btn-secondary" style="opacity:0.6; cursor:not-allowed;">View-only</span>
+            )}
             <a href="/laporan" class="btn btn-secondary">Lihat Laporan</a>
           </div>
         </div>
@@ -135,14 +143,14 @@ const productivity = productivityBase;
           <h3>Input Data Harian</h3>
           <p style="color: #666; margin-bottom: 1rem;">Update data peternakan hari ini</p>
           <img src="/images/realistic-monitoring-dashboard-ayam.jpg" alt="Ilustrasi input data harian" class="action-thumb" loading="lazy" />
-          <a href="/input-data" class="btn btn-primary">Input Sekarang</a>
+          {canInput ? <a href="/input-data" class="btn btn-primary">Input Sekarang</a> : <span class="btn btn-secondary" style="opacity:0.6; cursor:not-allowed;">View-only</span>}
         </div>
 
         <div class="glass-card">
           <h3>Upload Dokumen</h3>
           <p style="color: #666; margin-bottom: 1rem;">Unggah foto atau laporan peternakan</p>
           <img src="/images/realistic-kelola-file-peternakan.jpg" alt="Ilustrasi unggah dokumen" class="action-thumb" loading="lazy" />
-          <a href="/upload" class="btn btn-primary">Upload Sekarang</a>
+          {canUpload ? <a href="/upload" class="btn btn-primary">Upload Sekarang</a> : <span class="btn btn-secondary" style="opacity:0.6; cursor:not-allowed;">View-only</span>}
         </div>
 
         <div class="glass-card">

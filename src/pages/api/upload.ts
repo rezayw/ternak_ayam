@@ -8,6 +8,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 const userId = cookies.get("session")?.value;
 if (!userId) return new Response("Unauthorized", { status: 401 });
 
+const user = await db.user.findUnique({ where: { id: userId } });
+if (!user || user.role === "USER") return new Response("Forbidden", { status: 403 });
+
 
 const data = await request.formData();
 const file = data.get("file") as File;

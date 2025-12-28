@@ -9,6 +9,11 @@ if (!userId) {
   return Astro.redirect("/login");
 }
 
+const currentUser = await db.user.findUnique({ where: { id: userId } });
+if (!currentUser || currentUser.role === "USER") {
+  return Astro.redirect("/dashboard");
+}
+
 let csrf = Astro.cookies.get("csrf")?.value;
 if (!csrf) {
   csrf = randomUUID();
@@ -46,7 +51,7 @@ const files = await db.file.findMany({
 
       {showSuccess && (
         <div class="success-banner">
-          <div class="success-icon">✅</div>
+          <div class="success-icon"><img src="/images/icon-success.png" alt="success" style="width:32px;height:32px;" /></div>
           <div class="success-content">
             <h3>Upload Berhasil!</h3>
             <p>File Anda telah berhasil diupload dan tersimpan dengan aman.</p>
@@ -90,8 +95,8 @@ const files = await db.file.findMany({
                     <span>{file.mime}</span>
                   </div>
                 </div>
-                <a href={`/api/download/${file.id}`} class="download-btn" download>
-                  ⬇️ Download
+                <a href={`/api/download/${file.id}`} class="download-btn" download style="display: inline-flex; align-items: center; gap: 6px;">
+                  <img src="/images/icon-download.png" alt="download" style="width:18px;height:18px;" /> Download
                 </a>
               </div>
             ))}
@@ -102,7 +107,7 @@ const files = await db.file.findMany({
       <div class="info-box">
         <h3>Langkah Selanjutnya:</h3>
         <ul>
-          <li>✅ File Anda sudah tersimpan dengan aman</li>
+          <li><img src="/images/icon-check.png" alt="check" style="width:16px;height:16px;vertical-align:middle;" /> File Anda sudah tersimpan dengan aman</li>
           <li>Lihat statistik peternakan di <a href="/dashboard">Dashboard</a></li>
           <li>Upload lebih banyak dokumentasi jika diperlukan</li>
           <li>Kelola akun di halaman <a href="/dashboard">Dashboard</a></li>
