@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import "../../styles/design-system.css";
 import "../../styles/dashboard.css";
+import "../../styles/admin.css";
 
 const sessionId = Astro.cookies.get("session")?.value;
 if (!sessionId) return Astro.redirect("/login");
@@ -59,8 +60,8 @@ const showSuccess = successParam === "1";
       </div>
     </nav>
 
-    <div class="container">
-      <div class="header">
+    <div class="admin-container">
+      <div class="header admin-header">
         <h1>Kelola Users & Role</h1>
         <p>Atur role setiap user: ADMIN, SUPERVISOR, STAFF, atau USER</p>
       </div>
@@ -76,43 +77,43 @@ const showSuccess = successParam === "1";
       )}
 
       {pendingUsers.length > 0 && (
-        <div class="glass-card" style="padding: 1.5rem; margin-bottom: 1.5rem; background: rgba(255, 193, 7, 0.05); border: 1px solid rgba(255, 193, 7, 0.2);">
-          <h2 style="margin: 0 0 1rem; color: #ffc107; display: flex; align-items: center; gap: 0.5rem;">
-            ⏳ Pending Approval ({pendingUsers.length})
-          </h2>
-          <p style="margin: 0 0 1rem; color: #ccc;">User yang menunggu approval. Approve untuk mengaktifkan akun atau Reject untuk menolak.</p>
-          
-          <div style="overflow:auto; border:1px solid rgba(255,193,7,0.15); border-radius: 12px;">
-            <table style="width:100%; border-collapse: collapse; min-width: 600px;">
-              <thead style="background: rgba(0,0,0,0.3); border-bottom: 2px solid rgba(255,193,7,0.25);">
+        <div class="pending-card" aria-label="Pending approval list">
+          <h2>⏳ Pending Approval ({pendingUsers.length})</h2>
+          <p>User menunggu approval. Approve untuk mengaktifkan akun atau Reject untuk menolak.</p>
+
+          <div class="table-responsive">
+            <table class="table table-striped table-compact">
+              <thead>
                 <tr>
-                  <th style="text-align:left; padding: 14px 16px; color:#ffc107; font-weight: 700;">Email</th>
-                  <th style="text-align:left; padding: 14px 16px; color:#ffc107; font-weight: 700;">Role Default</th>
-                  <th style="text-align:left; padding: 14px 16px; color:#ffc107; font-weight: 700;">Action</th>
+                  <th>Email</th>
+                  <th>Role Default</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {pendingUsers.map((u, idx) => (
-                  <tr style={`background:${idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.15)'}; border-bottom: 1px solid rgba(255,255,255,0.05);`}>
-                    <td style="padding: 14px 16px; color:#e8faff; font-weight:600;">{u.email}</td>
-                    <td style="padding: 14px 16px;">
-                      <span style="padding: 6px 12px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; background:rgba(158,158,158,0.15); color:#9e9e9e;">
+                {pendingUsers.map((u) => (
+                  <tr>
+                    <td><strong>{u.email}</strong></td>
+                    <td>
+                      <span class={`role-chip ${u.role === 'ADMIN' ? 'admin' : u.role === 'SUPERVISOR' ? 'supervisor' : u.role === 'STAFF' ? 'staff' : 'user'}`}>
                         {u.role}
                       </span>
                     </td>
-                    <td style="padding: 14px 16px; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                      <form method="POST" action="/api/admin/approve-user" style="display:inline;">
-                        <input type="hidden" name="csrf" value={csrf} />
-                        <input type="hidden" name="userId" value={u.id} />
-                        <input type="hidden" name="action" value="approve" />
-                        <button type="submit" class="btn btn-primary" style="padding: 10px 16px; font-size: 0.9rem;">✓ Approve</button>
-                      </form>
-                      <form method="POST" action="/api/admin/approve-user" style="display:inline;">
-                        <input type="hidden" name="csrf" value={csrf} />
-                        <input type="hidden" name="userId" value={u.id} />
-                        <input type="hidden" name="action" value="reject" />
-                        <button type="submit" class="btn btn-danger" style="padding: 10px 16px; font-size: 0.9rem;">✗ Reject</button>
-                      </form>
+                    <td>
+                      <div class="table-actions">
+                        <form method="POST" action="/api/admin/approve-user">
+                          <input type="hidden" name="csrf" value={csrf} />
+                          <input type="hidden" name="userId" value={u.id} />
+                          <input type="hidden" name="action" value="approve" />
+                          <button type="submit" class="btn btn-primary">✓ Approve</button>
+                        </form>
+                        <form method="POST" action="/api/admin/approve-user">
+                          <input type="hidden" name="csrf" value={csrf} />
+                          <input type="hidden" name="userId" value={u.id} />
+                          <input type="hidden" name="action" value="reject" />
+                          <button type="submit" class="btn btn-danger">✗ Reject</button>
+                        </form>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -122,33 +123,33 @@ const showSuccess = successParam === "1";
         </div>
       )}
 
-      <div class="glass-card" style="padding: 1.5rem;">
-        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;">
+      <div class="glass-card">
+        <div class="layout-top">
           <div>
             <h2 style="margin: 0;">Daftar User</h2>
             <p style="margin: 0.25rem 0 0; color: #999;">Total {activeUsers.length} akun aktif</p>
           </div>
-          <div style="display:flex; gap:0.75rem; flex-wrap: wrap;">
-            <div style="padding: 8px 16px; background: rgba(0,255,200,0.1); border-radius: 8px; border: 1px solid rgba(0,255,200,0.2);">
-              <div style="font-size: 0.85rem; color: #999;">Admin</div>
-              <div style="font-size: 1.25rem; font-weight: 700; color: #0ef;">{users.filter(u => u.role === "ADMIN").length}</div>
+          <div class="role-stats">
+            <div class="role-pill admin">
+              <div class="label">Admin</div>
+              <div class="value">{users.filter(u => u.role === "ADMIN").length}</div>
             </div>
-            <div style="padding: 8px 16px; background: rgba(123,159,245,0.1); border-radius: 8px; border: 1px solid rgba(123,159,245,0.2);">
-              <div style="font-size: 0.85rem; color: #999;">Supervisor</div>
-              <div style="font-size: 1.25rem; font-weight: 700; color: #7b9ff5;">{users.filter(u => u.role === "SUPERVISOR").length}</div>
+            <div class="role-pill supervisor">
+              <div class="label">Supervisor</div>
+              <div class="value">{users.filter(u => u.role === "SUPERVISOR").length}</div>
             </div>
-            <div style="padding: 8px 16px; background: rgba(255,193,7,0.1); border-radius: 8px; border: 1px solid rgba(255,193,7,0.2);">
-              <div style="font-size: 0.85rem; color: #999;">Staff</div>
-              <div style="font-size: 1.25rem; font-weight: 700; color: #ffc107;">{users.filter(u => u.role === "STAFF").length}</div>
+            <div class="role-pill staff">
+              <div class="label">Staff</div>
+              <div class="value">{users.filter(u => u.role === "STAFF").length}</div>
             </div>
-            <div style="padding: 8px 16px; background: rgba(158,158,158,0.1); border-radius: 8px; border: 1px solid rgba(158,158,158,0.2);">
-              <div style="font-size: 0.85rem; color: #999;">User</div>
-              <div style="font-size: 1.25rem; font-weight: 700; color: #9e9e9e;">{users.filter(u => u.role === "USER").length}</div>
+            <div class="role-pill user">
+              <div class="label">User</div>
+              <div class="value">{users.filter(u => u.role === "USER").length}</div>
             </div>
           </div>
         </div>
 
-        <div class="info-box" style="margin-bottom: 1.5rem;">
+        <div class="info-box spaced-block">
           <h3>Hierarki Role:</h3>
           <ul style="margin: 0.5rem 0;">
             <li><strong>ADMIN</strong> - Full access: kelola users, approve/pin/lock diskusi, input data, upload file, lihat semua laporan</li>
@@ -158,49 +159,44 @@ const showSuccess = successParam === "1";
           </ul>
         </div>
 
-        <div style="overflow:auto; border:1px solid rgba(255,255,255,0.08); border-radius: 12px;">
-          <table style="width:100%; border-collapse: collapse; min-width: 600px;">
-            <thead style="background: rgba(0,0,0,0.3); border-bottom: 2px solid rgba(0,255,200,0.15);">
+        <div class="table-responsive">
+          <table class="table table-striped table-compact table-hover" aria-label="Daftar user aktif">
+            <thead>
               <tr>
-                <th style="text-align:left; padding: 14px 16px; color:#0ef; font-weight: 700;">Email</th>
-                <th style="text-align:left; padding: 14px 16px; color:#0ef; font-weight: 700;">Role Saat Ini</th>
-                <th style="text-align:left; padding: 14px 16px; color:#0ef; font-weight: 700;">Ubah Role</th>
-                <th style="text-align:left; padding: 14px 16px; color:#0ef; font-weight: 700;">Deskripsi</th>
+                <th>Email</th>
+                <th>Role Saat Ini</th>
+                <th>Ubah Role</th>
+                <th>Deskripsi</th>
               </tr>
             </thead>
             <tbody>
-              {activeUsers.map((u, idx) => (
-                <tr style={`background:${idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.15)'}; border-bottom: 1px solid rgba(255,255,255,0.05);`}>
-                  <td style="padding: 14px 16px; color:#e8faff; font-weight:600;">{u.email}</td>
-                  <td style="padding: 14px 16px;">
-                    <span style={`padding: 6px 12px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; ${
-                      u.role === 'ADMIN' ? 'background:rgba(0,255,200,0.15); color:#0ef;' :
-                      u.role === 'SUPERVISOR' ? 'background:rgba(123,159,245,0.15); color:#7b9ff5;' :
-                      u.role === 'STAFF' ? 'background:rgba(255,193,7,0.15); color:#ffc107;' :
-                      'background:rgba(158,158,158,0.15); color:#9e9e9e;'
-                    }`}>
+              {activeUsers.map((u) => (
+                <tr>
+                  <td><strong>{u.email}</strong></td>
+                  <td>
+                    <span class={`role-chip ${u.role === 'ADMIN' ? 'admin' : u.role === 'SUPERVISOR' ? 'supervisor' : u.role === 'STAFF' ? 'staff' : 'user'}`}>
                       {u.role}
                     </span>
                   </td>
-                  <td style="padding: 14px 16px;">
-                    <form method="POST" action="/api/admin/role" style="display:flex; align-items:center; gap: 0.5rem; flex-wrap: wrap;">
+                  <td>
+                    <form method="POST" action="/api/admin/role" class="table-actions">
                       <input type="hidden" name="csrf" value={csrf} />
                       <input type="hidden" name="redirectTo" value="/admin/users?success=1" />
                       <input type="hidden" name="userId" value={u.id} />
-                      <select name="role" style="padding: 10px 12px; border-radius: 8px; background:#0b1720; color:#e8faff; border:1px solid rgba(0,255,200,0.25); font-weight: 600;">
+                      <select name="role">
                         <option value="ADMIN" selected={u.role === "ADMIN"}>ADMIN</option>
                         <option value="SUPERVISOR" selected={u.role === "SUPERVISOR"}>SUPERVISOR</option>
                         <option value="STAFF" selected={u.role === "STAFF"}>STAFF</option>
                         <option value="USER" selected={u.role === "USER"}>USER</option>
                       </select>
-                      <button type="submit" class="btn btn-primary" style="padding: 10px 16px;">Update</button>
+                      <button type="submit" class="btn btn-primary">Update</button>
                     </form>
                   </td>
-                  <td style="padding: 14px 16px; color:#9ac; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+                  <td class="table-hint">
                     {u.role === 'USER' ? <><img src="/images/icon-view.png" alt="view" style="width:18px;height:18px;" /> Baca saja</> : 
-                     u.role === 'STAFF' ? <><img src="/images/icon-edit.png" alt="edit" style="width:18px;height:18px;" /> Input & upload</> : 
-                     u.role === 'SUPERVISOR' ? <><img src="/images/icon-approve.png" alt="approve" style="width:18px;height:18px;" /> Approve/pin/lock</> : 
-                     <><img src="/images/icon-key.png" alt="admin" style="width:18px;height:18px;" /> Full access</>}
+                    u.role === 'STAFF' ? <><img src="/images/icon-staff.png" alt="staff" style="width:18px;height:18px;" /> Input & upload</> :
+                    u.role === 'SUPERVISOR' ? <><img src="/images/icon-supervisor.png" alt="supervisor" style="width:18px;height:18px;" /> Approve & laporan tim</> :
+                    <><img src="/images/icon-admin.png" alt="admin" style="width:18px;height:18px;" /> Full access</>}
                   </td>
                 </tr>
               ))}

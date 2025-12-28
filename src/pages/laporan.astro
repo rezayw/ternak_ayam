@@ -21,44 +21,76 @@ if (!userId) {
   return Astro.redirect("/login");
 }
 
-// Fetch REAL data from database
+// Fetch user & role
 const user = await db.user.findUnique({
   where: { id: userId },
-  include: {
-    files: {
-      orderBy: { id: "desc" }
-    }
-  }
+  select: { id: true, role: true }
 });
 
-const files = user?.files || [];
+const role = user?.role ?? "USER";
+const isModerator = role === "ADMIN" || role === "SUPERVISOR";
+
+// Allowed users for drilldown
+const accessibleUsers = role === "ADMIN"
+  ? await db.user.findMany({ select: { id: true, email: true, role: true }, orderBy: { email: "asc" } })
+  : role === "SUPERVISOR"
+    ? await db.user.findMany({
+        where: { OR: [{ id: userId }, { role: "STAFF" }] },
+        select: { id: true, email: true, role: true },
+        orderBy: { email: "asc" }
+      })
+    : await db.user.findMany({ where: { id: userId }, select: { id: true, email: true, role: true } });
+
+const accessibleUserIds = accessibleUsers.map(u => u.id);
+
+const selectedUserParam = Astro.url.searchParams.get("userId");
+const targetUserId = selectedUserParam && accessibleUserIds.includes(selectedUserParam) ? selectedUserParam : null;
+const isAggregateView = !targetUserId;
+
+// Scope filters per role or per selected user
+const farmWhere = isAggregateView
+  ? (role === "ADMIN"
+      ? {}
+      : role === "SUPERVISOR"
+        ? { OR: [{ userId }, { user: { role: "STAFF" } }] }
+        : { userId })
+  : { userId: targetUserId };
+
+const fileWhere = isAggregateView
+  ? (role === "ADMIN"
+      ? {}
+      : role === "SUPERVISOR"
+        ? { OR: [{ ownerId: userId }, { owner: { role: "STAFF" } }] }
+        : { ownerId: userId })
+  : { ownerId: targetUserId };
+
+// Files scoped by view
+const files = await db.file.findMany({
+  where: fileWhere,
+  orderBy: { id: "desc" }
+});
 const totalFiles = files.length;
 const imageFiles = files.filter(f => f.mime.startsWith('image/')).length;
 
-// Get all users for statistics
+// User/system counts (files scoped to current view)
 const allUsers = await db.user.count();
-const allFiles = await db.file.count();
+const allFiles = await db.file.count({ where: fileWhere });
 
-// GET LATEST INPUT DATA FROM USER
+// GET LATEST INPUT DATA (scoped by role)
 const latestFarmData = await db.farmData.findFirst({
-  where: { userId },
+  where: farmWhere,
   orderBy: { date: "desc" }
 });
 
-// GET ALL FARM DATA for historical analysis
+// GET FARM DATA for historical analysis (scoped by role)
 const allFarmData = await db.farmData.findMany({
-  where: { userId },
+  where: farmWhere,
   orderBy: { date: "asc" }
-});
-
-// GET ALL USERS' DATA for aggregate statistics
-const allUsersFarmData = await db.farmData.findMany({
-  orderBy: { date: "desc" }
 });
 
 // ============= REAL STATISTICS FROM DATABASE =============
 // Total ayam: aggregate dari SEMUA user atau latest user data
-const totalChickensFromAll = allUsersFarmData.reduce((sum, data) => sum + data.totalChickens, 0);
+const totalChickensFromAll = allFarmData.reduce((sum, data) => sum + data.totalChickens, 0);
 const totalChickens = latestFarmData?.totalChickens || 0;
 const currentEggs = latestFarmData?.eggsToday || 0;
 
@@ -117,10 +149,56 @@ for (let i = 5; i >= 0; i--) {
 }
 
 const currentMonth = monthlyData[monthlyData.length - 1];
+const maxProduction = Math.max(1, ...monthlyData.map((m) => m.production));
+
+// Summaries per user (for dropdown/table)
+const farmDataForTable = await db.farmData.findMany({
+  where: { userId: { in: accessibleUserIds } },
+  orderBy: { date: "desc" }
+});
+
+const fileDataForTable = await db.file.findMany({
+  where: { ownerId: { in: accessibleUserIds } },
+  select: { ownerId: true, mime: true }
+});
+
+const farmAgg = new Map<string, { production: number; healthSum: number; healthCount: number; cost: number }>();
+for (const fd of farmDataForTable) {
+  const entry = farmAgg.get(fd.userId) || { production: 0, healthSum: 0, healthCount: 0, cost: 0 };
+  entry.production += fd.eggsToday;
+  if (fd.totalChickens && fd.healthyChickens) {
+    entry.healthSum += (fd.healthyChickens / fd.totalChickens) * 100;
+    entry.healthCount += 1;
+  }
+  entry.cost += Number(fd.feedCost || 0) + Number(fd.medicineCost || 0) + Number(fd.maintenanceCost || 0);
+  farmAgg.set(fd.userId, entry);
+}
+
+const fileAgg = new Map<string, { total: number; images: number }>();
+for (const f of fileDataForTable) {
+  const entry = fileAgg.get(f.ownerId) || { total: 0, images: 0 };
+  entry.total += 1;
+  if (f.mime.startsWith("image/")) entry.images += 1;
+  fileAgg.set(f.ownerId, entry);
+}
+
+const userSummaries = accessibleUsers.map(u => {
+  const f = farmAgg.get(u.id) || { production: 0, healthSum: 0, healthCount: 0, cost: 0 };
+  const file = fileAgg.get(u.id) || { total: 0, images: 0 };
+  const avgHealth = f.healthCount > 0 ? Math.floor(f.healthSum / f.healthCount) : 0;
+  return {
+    ...u,
+    production: f.production,
+    avgHealth,
+    cost: f.cost,
+    files: file.total,
+    images: file.images
+  };
+});
 
 // Get recent activities from files
 const recentActivities = files.slice(0, 3).map(file => ({
-  icon: '<img src="/images/icon-upload.png" alt="upload" style="width:20px;height:20px;" />',
+  icon: '<img src="/images/icon-upload.svg" alt="upload" style="width:20px;height:20px;" />',
   text: `Upload: ${file.filename}`,
   date: 'Baru saja'
 }));
@@ -131,9 +209,6 @@ recentActivities.push({
   text: 'Login ke sistem',
   date: 'Hari ini'
 });
-
-const role = user?.role ?? "USER";
-const isModerator = role === "ADMIN" || role === "SUPERVISOR";
 
 let commentThread = null;
 let comments = [] as any[];
@@ -335,10 +410,19 @@ if (role === "STAFF" && commentThread?.resourceType === "FARM_DATA") {
 }
 
 // Build threaded comments
+const parseTags = (tagStr: string | null | undefined) => tagStr
+  ? tagStr.split(",").map((t) => t.trim()).filter(Boolean)
+  : [];
+
 const commentMap = new Map();
 const commentTree = [] as any[];
 for (const comment of comments) {
-  const node = { ...comment, replies: [] as any[], attachmentUrl: comment.attachmentPath ? `/api/comments/attachment/${comment.id}` : null };
+  const node = {
+    ...comment,
+    issueTags: parseTags(comment.issueTag),
+    replies: [] as any[],
+    attachmentUrl: comment.attachmentPath ? `/api/comments/attachment/${comment.id}` : null
+  };
   commentMap.set(comment.id, node);
 }
 
@@ -360,6 +444,27 @@ commentTree.sort((a, b) => {
 const canPostComment = role !== "USER" && !!commentThread && canPostToThread;
 const threadLocked = commentThread?.isLocked ?? false;
 const pinnedCommentId = commentThread?.pinnedCommentId ?? null;
+
+// Tag data for filtering
+const collectTags = (list: any[]): string[] => list.flatMap((c) => [
+  ...(c.issueTags || []),
+  ...(c.replies ? collectTags(c.replies) : [])
+]);
+
+const allTags = Array.from(new Set(collectTags(commentTree)));
+const selectedTag = Astro.url.searchParams.get("tag")?.trim() || null;
+
+const hasTag = (node: any, tag: string): boolean => {
+  const tagLower = tag.toLowerCase();
+  const selfMatch = (node.issueTags || []).some((t: string) => t.toLowerCase() === tagLower);
+  const replyMatch = node.replies ? node.replies.some((r: any) => hasTag(r, tag)) : false;
+  return selfMatch || replyMatch;
+};
+
+// Filter comment tree by selected tag
+const filteredCommentTree = selectedTag
+  ? commentTree.filter((c) => hasTag(c, selectedTag))
+  : commentTree;
 ---
 
 <!DOCTYPE html>
@@ -371,14 +476,16 @@ const pinnedCommentId = commentThread?.pinnedCommentId ?? null;
   </head>
   <body>
     <!-- Navigation -->
-    <nav>
+    <nav class="nav-shell">
       <div class="nav-brand">
         <img src="/images/logo.png" alt="Ternak Ayam logo" />
         <span>Ternak Ayam</span>
       </div>
       <div class="nav-links">
         <a href="/dashboard">Dashboard</a>
+        <a href="/input-data">Input Data</a>
         <a href="/upload">Upload</a>
+        <a href="/laporan" aria-current="page">Laporan</a>
         <form method="POST" action="/api/auth/logout" style="display: inline;">
           <input type="hidden" name="csrf" value={csrf} />
           <button type="submit" class="btn btn-danger">Logout</button>
@@ -406,6 +513,23 @@ const pinnedCommentId = commentThread?.pinnedCommentId ?? null;
 
       <!-- Summary Cards -->
       <div class="summary-grid">
+        {(role === "ADMIN" || role === "SUPERVISOR") && (
+          <div class="glass-card" style="grid-column: 1 / -1; display:flex; align-items:center; gap:0.75rem; flex-wrap: wrap;">
+            <form method="GET" style="display:flex; gap:0.5rem; align-items:center; flex-wrap: wrap;">
+              <input type="hidden" name="csrf" value={csrf} />
+              <label style="color: var(--text-secondary); font-size: 0.95rem;">Lihat laporan:</label>
+              <select name="userId" style="padding: 0.5rem 0.75rem; border-radius: 0.6rem; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-primary); min-width: 200px;">
+                <option value="">Semua (agregat)</option>
+                {accessibleUsers.map(u => (
+                  <option value={u.id} selected={u.id === targetUserId}>{u.email} ({u.role})</option>
+                ))}
+              </select>
+              <button type="submit" class="btn btn-secondary" style="padding: 0.55rem 1rem;">Terapkan</button>
+              {!isAggregateView && <span style="color: var(--text-muted); font-size: 0.9rem;">Sedang melihat: {accessibleUsers.find(u => u.id === targetUserId)?.email}</span>}
+            </form>
+          </div>
+        )}
+
         <div class="glass-card">
           <div class="summary-icon"></div>
           <div class="summary-content">
@@ -451,7 +575,7 @@ const pinnedCommentId = commentThread?.pinnedCommentId ?? null;
         <div class="chart-container">
           {monthlyData.map((data) => (
             <div class="chart-bar-wrapper">
-              <div class="chart-bar" style={`height: ${(data.production / 200) * 100}%`}>
+              <div class="chart-bar" style={`height: ${Math.max(12, Math.round((data.production / maxProduction) * 220))}px`}>
                 <div class="chart-value">{data.production}</div>
               </div>
               <div class="chart-label">{data.month}</div>
@@ -459,6 +583,38 @@ const pinnedCommentId = commentThread?.pinnedCommentId ?? null;
           ))}
         </div>
       </div>
+
+      {(role === "ADMIN" || role === "SUPERVISOR") && userSummaries.length > 0 && (
+        <div class="report-section">
+          <h2>Ringkasan Per Pengguna</h2>
+          <div class="report-card" style="overflow-x: auto;">
+            <table class="table" style="width:100%; border-collapse: collapse; color: var(--text-primary);">
+              <thead>
+                <tr style="text-align:left; border-bottom: 1px solid var(--border-color);">
+                  <th style="padding: 8px 12px;">Pengguna</th>
+                  <th style="padding: 8px 12px;">Role</th>
+                  <th style="padding: 8px 12px;">Produksi (6 bln)</th>
+                  <th style="padding: 8px 12px;">Rata Kesehatan</th>
+                  <th style="padding: 8px 12px;">Biaya</th>
+                  <th style="padding: 8px 12px;">Dokumen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {userSummaries.map(u => (
+                  <tr style={`border-bottom: 1px solid var(--border-color); ${u.id === targetUserId ? 'background: rgba(60,255,208,0.06);' : ''}`}>
+                    <td style="padding: 8px 12px;">{u.email}</td>
+                    <td style="padding: 8px 12px; text-transform: lowercase;">{u.role}</td>
+                    <td style="padding: 8px 12px;">{u.production}</td>
+                    <td style="padding: 8px 12px;">{u.avgHealth}%</td>
+                    <td style="padding: 8px 12px;">Rp {u.cost.toLocaleString('id-ID')}</td>
+                    <td style="padding: 8px 12px;">{u.files} file ({u.images} gambar)</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <!-- Detailed Reports -->
       <div class="reports-grid">
@@ -544,6 +700,23 @@ const pinnedCommentId = commentThread?.pinnedCommentId ?? null;
       <!-- Discussion & Comments -->
       <div class="report-section">
         <h2>Diskusi & Komentar</h2>
+
+        {allTags.length > 0 && (
+          <div style="margin: 0.5rem 0 1rem; display:flex; gap:0.5rem; flex-wrap: wrap; align-items:center;">
+            <span style="color: #888; font-size: 0.95rem;">Filter tag:</span>
+            <a href="/laporan" class="btn btn-outline" style={`padding: 4px 10px; font-size: 0.85rem; ${!selectedTag ? 'border-color:#3cffd0;color:#0b0f18;background:#3cffd0' : ''}`}>Semua</a>
+            {allTags.map((tag) => (
+              <a
+                href={`/laporan?tag=${encodeURIComponent(tag)}`}
+                class="btn btn-outline"
+                style={`padding: 4px 10px; font-size: 0.85rem; ${(selectedTag && selectedTag.toLowerCase() === tag.toLowerCase()) ? 'border-color:#3cffd0;color:#0b0f18;background:#3cffd0' : ''}`}
+              >
+                #{tag}
+              </a>
+            ))}
+          </div>
+        )}
+
         {threadLocked && (
           <div class="success-banner" style="background: #ffeaea; border: 1px solid #ffc0c0;">
             <div class="success-content">
@@ -553,13 +726,13 @@ const pinnedCommentId = commentThread?.pinnedCommentId ?? null;
           </div>
         )}
 
-        {commentTree.length === 0 ? (
+        {filteredCommentTree.length === 0 ? (
           <div class="glass-card">
-            <p style="margin: 0;">Belum ada komentar. Mulai diskusi dengan tim Anda.</p>
+            <p style="margin: 0;">{selectedTag ? 'Tidak ada komentar dengan tag tersebut.' : 'Belum ada komentar. Mulai diskusi dengan tim Anda.'}</p>
           </div>
         ) : (
           <div class="glass-card" style="display: flex; flex-direction: column; gap: 1rem;">
-            {commentTree.map((comment) => (
+            {filteredCommentTree.map((comment) => (
               <div class="comment-item" style="border: 1px solid #eee; border-radius: 10px; padding: 1rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                   <div>
@@ -569,8 +742,12 @@ const pinnedCommentId = commentThread?.pinnedCommentId ?? null;
                   </div>
                   <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                     <span style={`font-size: 0.8rem; padding: 2px 8px; border-radius: 999px; ${comment.status === 'APPROVED' ? 'background:#e6f7ed;color:#0f7b45' : comment.status === 'PENDING' ? 'background:#fff4e5;color:#b45d00' : 'background:#ffeaea;color:#b40000'}`}>Status: {comment.status}</span>
-                    {comment.issueTag && (
-                      <span style="font-size: 0.8rem; padding: 2px 8px; border-radius: 999px; background:#e7e9ff; color:#3c3fa0;">Tag: {comment.issueTag}</span>
+                    {(comment.issueTags && comment.issueTags.length > 0) && (
+                      <span style="display:flex; gap:0.35rem; flex-wrap: wrap; align-items:center;">
+                        {comment.issueTags.map((tag) => (
+                          <a href={`/laporan?tag=${encodeURIComponent(tag)}`} style="font-size: 0.8rem; padding: 2px 8px; border-radius: 999px; background:#e7e9ff; color:#1f2a44; text-decoration:none;">#{tag}</a>
+                        ))}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -647,12 +824,21 @@ const pinnedCommentId = commentThread?.pinnedCommentId ?? null;
                   <div style="border-left: 2px solid #eee; margin-top: 1rem; padding-left: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
                     {comment.replies.map((reply) => (
                       <div style="border: 1px solid #f1f1f1; border-radius: 8px; padding: 0.75rem;">
-                        <div style="display:flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+                        <div style="display:flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; align-items:center;">
                           <div>
                             <strong>{reply.author.email}</strong>
                             <span style="margin-left: 8px; font-size: 0.85rem; color: #777;">{reply.author.role}</span>
                           </div>
-                          <span style={`font-size: 0.8rem; padding: 2px 8px; border-radius: 999px; ${reply.status === 'APPROVED' ? 'background:#e6f7ed;color:#0f7b45' : reply.status === 'PENDING' ? 'background:#fff4e5;color:#b45d00' : 'background:#ffeaea;color:#b40000'}`}>Status: {reply.status}</span>
+                          <div style="display:flex; gap:0.4rem; align-items:center; flex-wrap: wrap;">
+                            <span style={`font-size: 0.8rem; padding: 2px 8px; border-radius: 999px; ${reply.status === 'APPROVED' ? 'background:#e6f7ed;color:#0f7b45' : reply.status === 'PENDING' ? 'background:#fff4e5;color:#b45d00' : 'background:#ffeaea;color:#b40000'}`}>Status: {reply.status}</span>
+                            {(reply.issueTags && reply.issueTags.length > 0) && (
+                              <span style="display:flex; gap:0.35rem; flex-wrap: wrap; align-items:center;">
+                                {reply.issueTags.map((tag) => (
+                                  <a href={`/laporan?tag=${encodeURIComponent(tag)}`} style="font-size: 0.8rem; padding: 2px 8px; border-radius: 999px; background:#e7e9ff; color:#1f2a44; text-decoration:none;">#{tag}</a>
+                                ))}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <p style="margin: 0.5rem 0; white-space: pre-wrap;">{reply.content}</p>
                         <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap: wrap; font-size: 0.9rem; color: #666;">
@@ -717,8 +903,8 @@ const pinnedCommentId = commentThread?.pinnedCommentId ?? null;
                 <textarea name="content" rows={3} required placeholder="Tulis komentar, insight, atau instruksi..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd;"></textarea>
               </label>
               <label>
-                <span style="display:block; margin-bottom: 4px;">Tag (opsional)</span>
-                <input type="text" name="issueTag" placeholder="Misal: kebersihan, kesehatan, pakan" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd;" />
+                <span style="display:block; margin-bottom: 4px;">Tag (opsional, pisahkan dengan koma)</span>
+                <input type="text" name="issueTag" placeholder="Contoh: ayam, kebersihan, pakan" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd;" />
               </label>
               <label>
                 <span style="display:block; margin-bottom: 4px;">Lampiran Foto (png/jpg/webp)</span>

@@ -8,19 +8,7 @@ body {
   color: var(--text-primary);
 }
 
-nav {
-  width: min(1200px, 94%);
-  margin: var(--spacing-lg) auto;
-  border-radius: 16px;
-}
-
-.nav-links a {
-  color: var(--text-secondary);
-}
-
-.nav-links a:hover {
-  color: var(--accent-primary);
-}
+/* Navbar styling now centralized in design-system via nav.nav-shell */
 
 .container {
   width: min(1200px, 94%);

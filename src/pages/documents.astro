@@ -1,0 +1,129 @@
+---
+import { randomUUID } from "node:crypto";
+import { db } from "@/lib/db";
+import "../styles/design-system.css";
+import "../styles/upload.css";
+
+const userId = Astro.cookies.get("session")?.value;
+if (!userId) {
+  return Astro.redirect("/login");
+}
+
+const currentUser = await db.user.findUnique({ where: { id: userId }, select: { role: true } });
+if (!currentUser || currentUser.role === "USER" || currentUser.role === "STAFF") {
+  return Astro.redirect("/dashboard");
+}
+
+let csrf = Astro.cookies.get("csrf")?.value;
+if (!csrf) {
+  csrf = randomUUID();
+  Astro.cookies.set("csrf", csrf, {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: true,
+    path: "/"
+  });
+}
+
+let files: any[] = [];
+if (currentUser.role === "ADMIN") {
+  files = await db.file.findMany({
+    where: { ownerId: { not: userId } },
+    orderBy: { id: "desc" },
+    include: { owner: { select: { email: true, role: true } } }
+  });
+} else if (currentUser.role === "SUPERVISOR") {
+  files = await db.file.findMany({
+    where: {
+      ownerId: { not: userId },
+      owner: { role: "STAFF" }
+    },
+    orderBy: { id: "desc" },
+    include: { owner: { select: { email: true, role: true } } }
+  });
+}
+---
+
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dokumen Tim - Ternak Ayam</title>
+  </head>
+  <body>
+    <nav class="nav-shell">
+      <div class="nav-brand">
+        <img src="/images/logo.png" alt="Ternak Ayam logo" />
+        <span>Ternak Ayam</span>
+      </div>
+      <div class="nav-links">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/upload">Dokumen Saya</a>
+        <a href="/documents" aria-current="page">Dokumen Tim</a>
+        <form method="POST" action="/api/auth/logout" style="display:inline;">
+          <input type="hidden" name="csrf" value={csrf} />
+          <button type="submit" class="btn btn-danger">Logout</button>
+        </form>
+      </div>
+    </nav>
+
+    <main class="page">
+      <div class="page-header">
+        <div>
+          <p class="eyebrow">Dokumen Tim</p>
+          <h1>Akses Dokumen Tim</h1>
+          <p>Lihat dokumen yang diupload anggota tim sesuai hak akses Anda</p>
+          <p style="margin-top: 0.5rem; font-size: 0.95rem;">
+            Untuk dokumen pribadi Anda sendiri, buka halaman <a href="/upload">Upload Dokumen Pribadi</a>.
+          </p>
+        </div>
+      </div>
+
+      {files.length > 0 ? (
+        <div class="uploaded-files">
+          <h2>Dokumen Tim ({files.length})</h2>
+          <div class="files-list">
+            {files.map((file) => (
+              <div class="file-item">
+                <div class="file-icon">
+                  {file.mime.startsWith('image/') ? '[IMG]' : '[FILE]'}
+                </div>
+                <div class="file-info">
+                  <div class="file-name">{file.filename}</div>
+                  <div class="file-meta">
+                    <span>{file.mime}</span>
+                    {file.owner && (
+                      <span style="margin-left: 8px; color: #8bb4ff;">{file.owner.email} ({file.owner.role})</span>
+                    )}
+                  </div>
+                </div>
+                <a href={`/api/download/${file.id}`} class="btn btn-secondary" download style="display: inline-flex; align-items: center; gap: 6px;">
+                  <img src="/images/icon-download.png" alt="download" style="width:18px;height:18px;" /> Download
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div class="info-box">
+          <h3>Belum ada dokumen tim</h3>
+          <p>Anda hanya melihat dokumen yang diupload oleh anggota lain sesuai peran Anda.</p>
+        </div>
+      )}
+
+      <div class="info-box">
+        <h3>Tips akses</h3>
+        <ul>
+          <li>Admin: melihat semua dokumen milik pengguna lain</li>
+          <li>Supervisor: melihat dokumen milik STAFF (bukan dokumen pribadi Anda)</li>
+          <li>Gunakan halaman Upload untuk dokumen pribadi Anda</li>
+        </ul>
+      </div>
+
+      <div class="back-link">
+        <a href="/dashboard">← Kembali ke Dashboard</a>
+      </div>
+    </main>
+  </body>
+</html>

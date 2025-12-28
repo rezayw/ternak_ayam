@@ -43,13 +43,15 @@ const latestData = await db.farmData.findFirst({
   </head>
   <body>
     <!-- Navigation -->
-    <nav>
+    <nav class="nav-shell">
       <div class="nav-brand">
         <img src="/images/logo.png" alt="Ternak Ayam logo" />
         <span>Ternak Ayam</span>
       </div>
       <div class="nav-links">
         <a href="/dashboard">Dashboard</a>
+        <a href="/input-data" aria-current="page">Input Data</a>
+        <a href="/upload">Upload</a>
         <a href="/laporan">Laporan</a>
         <form method="POST" action="/api/auth/logout" style="display: inline;">
           <input type="hidden" name="csrf" value={csrf} />
@@ -74,7 +76,7 @@ const latestData = await db.farmData.findFirst({
         </div>
       )}
 
-      <form method="post" action="/api/farm/update" id="farmForm">
+      <form method="post" action="/api/farm/update" id="farmForm" class="styled-form">
         <input type="hidden" name="csrf" value={csrf} />
 
         <div class="form-section">

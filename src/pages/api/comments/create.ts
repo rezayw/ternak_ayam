@@ -121,10 +121,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     ? (parentComment && parentStatus === "APPROVED" ? "APPROVED" : "PENDING")
     : "APPROVED";
 
+  const tagList = typeof issueTag === "string"
+    ? Array.from(new Set(issueTag.split(",").map((t) => t.trim()).filter(Boolean)))
+    : [];
+  const normalizedIssueTag = tagList.length ? tagList.join(",") : null;
+
   await db.comment.create({
     data: {
       content: content.trim(),
-      issueTag: typeof issueTag === "string" && issueTag.trim() ? issueTag.trim() : null,
+      issueTag: normalizedIssueTag,
       authorId: user.id,
       threadId: thread.id,
       parentId: parentComment?.id,

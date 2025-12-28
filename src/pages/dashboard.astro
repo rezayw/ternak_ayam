@@ -66,14 +66,16 @@ const productivity = (latestFarmData && latestFarmData.totalChickens > 0) ?
   </head>
   <body>
     <!-- Navigation -->
-    <nav>
+    <nav class="nav-shell">
       <div class="nav-brand">
         <img src="/images/logo.png" alt="Ternak Ayam logo" />
         <span>Ternak Ayam</span>
       </div>
       <div class="nav-links">
         {isAdmin && <a href="/admin/users">Kelola Users</a>}
-        {canUpload && <a href="/upload" class="btn btn-primary">+ Upload</a>}
+        {canInput && <a href="/input-data">Input Data</a>}
+        {canUpload && <a href="/upload">Upload</a>}
+        <a href="/laporan">Laporan</a>
         <form method="POST" action="/api/auth/logout" style="display: inline;">
           <input type="hidden" name="csrf" value={csrf} />
           <button type="submit" class="btn btn-danger">Logout</button>

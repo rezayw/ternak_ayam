@@ -6,59 +6,7 @@ body {
   padding: 0;
 }
 
-nav {
-  background: rgba(8, 12, 20, 0.82);
-  box-shadow: var(--shadow-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  width: min(1040px, 94%);
-  margin: var(--spacing-md) auto var(--spacing-md);
-}
-
-.nav-brand {
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.nav-brand::before {
-  content: "";
-}
-
-.nav-links {
-  display: flex;
-  gap: var(--spacing-md);
-  align-items: center;
-}
-
-.nav-links a {
-  text-decoration: none;
-  color: var(--text-secondary);
-  font-weight: 600;
-  transition: color 0.3s;
-}
-
-.nav-links a:hover {
-  color: var(--accent-primary);
-}
-
-.btn-outline {
-  background: transparent;
-  color: var(--text-primary);
-  border: 2px solid var(--accent-primary);
-}
-
-.btn-outline:hover {
-  background: var(--bg-tertiary);
-  transform: translateY(-2px);
-}
+/* Navbar styling now centralized in design-system via nav.nav-shell */
 
 .container {
   max-width: 860px;
@@ -74,7 +22,6 @@ nav {
 
 .header h1 {
   color: var(--text-primary);
-  font-size: 2rem;
   margin-bottom: 0.5rem;
 }
 
@@ -111,7 +58,7 @@ nav {
   margin: 0;
 }
 
-form {
+.styled-form {
   background: linear-gradient(165deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.05));
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
@@ -124,28 +71,28 @@ form {
   overflow: hidden;
 }
 
-form::before {
+.styled-form::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, 
+  background: linear-gradient(90deg,
     rgba(245, 165, 36, 0) 0%,
     rgba(245, 165, 36, 0.45) 50%,
     rgba(245, 165, 36, 0) 100%
   );
 }
 
-form::after {
+.styled-form::after {
   content: '';
   position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
   width: 2px;
-  background: linear-gradient(180deg, 
+  background: linear-gradient(180deg,
     rgba(34, 211, 238, 0) 0%,
     rgba(34, 211, 238, 0.45) 50%,
     rgba(34, 211, 238, 0) 100%
@@ -281,7 +228,7 @@ textarea {
     padding: 1rem;
   }
 
-  form {
+  .styled-form {
     padding: 1.5rem;
   }
 

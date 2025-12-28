@@ -45,7 +45,12 @@ const role = currentUser?.role || "USER";
         {isLoggedIn ? (
           <>
             <a href="/dashboard">Dashboard</a>
-            {role !== "USER" && <a href="/upload">Upload</a>}
+            {role !== "USER" && (
+              <>
+                <a href="/upload">Dokumen Saya</a>
+                {(role === "ADMIN" || role === "SUPERVISOR") && <a href="/documents">Dokumen Tim</a>}
+              </>
+            )}
             <form method="POST" action="/api/auth/logout">
               <input type="hidden" name="csrf" value={csrf} />
               <button type="submit" class="btn btn-primary">Logout</button>
@@ -74,7 +79,12 @@ const role = currentUser?.role || "USER";
               <a href="/dashboard" class="btn btn-light">Buka Dashboard</a>
               <span class="role-pill">Role: {role}</span>
               {role === "USER" && <span class="role-note">Akses baca saja</span>}
-              {role !== "USER" && <a href="/upload" class="btn btn-secondary">Upload</a>}
+              {role !== "USER" && (
+                <div style="display:flex; gap:0.5rem; flex-wrap: wrap; align-items:center;">
+                  <a href="/upload" class="btn btn-secondary">Dokumen Saya</a>
+                  {(role === "ADMIN" || role === "SUPERVISOR") && <a href="/documents" class="btn btn-secondary" style="background:#1f2a44;">Dokumen Tim</a>}
+                </div>
+              )}
             </div>
           ) : (
             <>
