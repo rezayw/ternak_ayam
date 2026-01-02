@@ -16,19 +16,19 @@ async function main() {
   const hash = await argon2.hash(password, { type: argon2.argon2id });
 
   const admin = await db.user.create({
-    data: { email: "admin@example.com", password: hash, role: "ADMIN" }
+    data: { email: "admin@example.com", password: hash, role: "ADMIN", status: "ACTIVE" }
   });
 
   const supervisor = await db.user.create({
-    data: { email: "supervisor@example.com", password: hash, role: "SUPERVISOR" }
+    data: { email: "supervisor@example.com", password: hash, role: "SUPERVISOR", status: "ACTIVE" }
   });
 
   const staff = await db.user.create({
-    data: { email: "staff@example.com", password: hash, role: "STAFF" }
+    data: { email: "staff@example.com", password: hash, role: "STAFF", status: "ACTIVE" }
   });
 
   const viewer = await db.user.create({
-    data: { email: "user@example.com", password: hash, role: "USER" }
+    data: { email: "user@example.com", password: hash, role: "USER", status: "ACTIVE" }
   });
 
   const farmRecord = await db.farmData.create({
