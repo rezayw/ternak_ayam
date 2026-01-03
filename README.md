@@ -24,8 +24,6 @@ Aplikasi modern untuk mengelola peternakan ayam dengan efisien dan produktif. Di
 - [OWASP Mapping](#owasp-mapping)
 - [Deploy](#deploy)
 - [Teknologi](#teknologi)
-- [Kontribusi](#kontribusi)
-- [Lisensi](#lisensi)
 
 ## 🎯 Ruang Lingkup Tugas
 
@@ -364,27 +362,3 @@ pm2 startup
 - **Docker** - Containerization
 - **PM2** - Process manager
 - **Nginx** - Reverse proxy
-
-## 🤝 Kontribusi
-
-Kami menerima kontribusi! Untuk berkontribusi:
-
-1. Fork repository
-2. Buat branch feature (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push ke branch (`git push origin feature/AmazingFeature`)
-5. Buka Pull Request
-
-## 📝 Lisensi
-
-Project ini dilisensikan di bawah MIT License - lihat [LICENSE](LICENSE) file untuk detail.
-
-## 📞 Support & Contact
-
-- 📧 Email: support@ternak-ayam.com
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/ternak_ayam/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/yourusername/ternak_ayam/discussions)
-
----
-
-Dibuat dengan ❤️ untuk komunitas peternakan modern Indonesia
